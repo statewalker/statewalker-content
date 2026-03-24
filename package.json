@@ -1,0 +1,42 @@
+{
+  "name": "@repo/content-llm",
+  "version": "0.0.0",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./messages": "./src/messages/index.ts",
+    "./reasoning": "./src/reasoning/index.ts",
+    "./skills": "./src/skills/index.ts",
+    "./mcp": "./src/mcp/index.ts",
+    "./tools": "./src/tools/index.ts"
+  },
+  "files": ["dist/**", "src/**"],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "lint": "biome check --write .",
+    "format": "biome format --write ."
+  },
+  "dependencies": {
+    "@repo/content-blocks": "workspace:*",
+    "@ai-sdk/anthropic": "^3.0.58",
+    "@ai-sdk/google": "^3.0.51",
+    "@ai-sdk/mcp": "^1.0.25",
+    "@ai-sdk/openai": "^3.0.41",
+    "@ai-sdk/provider": "^3.0.8",
+    "@ai-sdk/provider-utils": "^4.0.19",
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "ai": "^6.0.116",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
