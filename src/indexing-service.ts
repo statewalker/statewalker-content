@@ -1,6 +1,8 @@
 import type {
   CreateIndexParams,
+  DocumentPath,
   EmbedFn,
+  HybridSearchResult,
   Index,
   Indexer,
 } from "@repo/indexer-api";
@@ -11,6 +13,10 @@ export interface IndexingServiceOptions {
   indexer: Indexer;
   embed?: EmbedFn;
   embeddingDimensions?: number;
+}
+
+function toDocPath(uri: string): DocumentPath {
+  return (uri.startsWith("/") ? uri : `/${uri}`) as DocumentPath;
 }
 
 export class IndexingService {
@@ -38,7 +44,6 @@ export class IndexingService {
   }
 
   private async createIndex(): Promise<void> {
-    // Try to reuse existing index (e.g., restored from persistence)
     const existing = await this.indexer.getIndex("content");
     if (existing) {
       this.index = existing;
@@ -69,24 +74,28 @@ export class IndexingService {
     if (this.semanticIndex) {
       await this.semanticIndex.addDocuments(
         blocks.map((b) => ({
+          path: toDocPath(b.uri),
           blockId: b.blockId,
           content: b.title ? `${b.title}\n${b.content}` : b.content,
         })),
       );
     } else if (this.index) {
       await this.index.addDocuments(
-        blocks.map((b) => ({
-          blockId: b.blockId,
-          content: b.title ? `${b.title}\n${b.content}` : b.content,
-        })),
+        blocks.map((b) => [
+          {
+            path: toDocPath(b.uri),
+            blockId: b.blockId,
+            content: b.title ? `${b.title}\n${b.content}` : b.content,
+          },
+        ]),
       );
     }
   }
 
-  async removeDocument(blockIds: string[]): Promise<void> {
+  async removeDocument(uri: string): Promise<void> {
     await this.ensureIndex();
     if (this.index) {
-      await this.index.deleteDocuments(blockIds);
+      await this.index.deleteDocuments([{ path: toDocPath(uri) }]);
     }
   }
 
@@ -96,14 +105,20 @@ export class IndexingService {
   ): Promise<Array<{ blockId: string; score: number }>> {
     await this.ensureIndex();
 
-    const apiResults = this.semanticIndex
-      ? await this.semanticIndex.search({ query, topK })
-      : ((await this.index?.search({ query, topK })) ?? []);
+    if (this.semanticIndex) {
+      const results = await this.semanticIndex.search({ query, topK });
+      return results.map((r) => ({ blockId: r.blockId, score: r.score }));
+    }
 
-    return apiResults.map((r) => ({
-      blockId: r.blockId,
-      score: r.score,
-    }));
+    if (this.index) {
+      const results: HybridSearchResult[] = [];
+      for await (const r of this.index.search({ queries: [query], topK })) {
+        results.push(r);
+      }
+      return results.map((r) => ({ blockId: r.blockId, score: r.score }));
+    }
+
+    return [];
   }
 
   async close(): Promise<void> {

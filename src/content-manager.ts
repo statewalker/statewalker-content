@@ -45,10 +45,8 @@ export function createContentManager(
       const doc = await store.getByUri(uri);
       if (!doc) return;
 
-      const blockIds = doc.blocks.map((b) => b.blockId);
-
-      // Remove from index
-      await indexing.removeDocument(blockIds);
+      // Remove from index by URI (path prefix)
+      await indexing.removeDocument(uri);
 
       // Remove from document store (also removes from storage)
       await store.remove(uri);
