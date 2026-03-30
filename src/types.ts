@@ -1,7 +1,4 @@
-import type {
-  ContentMessage,
-  ContentMessageProps,
-} from "@repo/content-blocks";
+import type { ContentMessage, ContentMessageProps } from "@repo/content-blocks";
 
 /**
  * The lowest-level extraction contract: raw bytes in, text out.

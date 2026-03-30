@@ -50,7 +50,10 @@ export async function* extractContent(
   }
 
   // Stage 1: extracting
-  yield makeMessage({ role, stage: "extracting", type: "extraction-progress" }, []);
+  yield makeMessage(
+    { role, stage: "extracting", type: "extraction-progress" },
+    [],
+  );
 
   // Run the extractor
   const rawResult = await extractor(content);
@@ -58,7 +61,10 @@ export async function* extractContent(
 
   // Stage 2: normalizing (only if normalizer provided)
   if (options.normalizer) {
-    yield makeMessage({ role, stage: "normalizing", type: "extraction-progress" }, []);
+    yield makeMessage(
+      { role, stage: "normalizing", type: "extraction-progress" },
+      [],
+    );
     const normalized = await options.normalizer.normalize({
       markdown,
       context: options.context,
@@ -69,5 +75,7 @@ export async function* extractContent(
   // Stage 3: done — parse markdown into block tree
   const rootBlock = buildBlockTree(markdown);
 
-  yield makeMessage({ role, stage: "done", type: "extraction-done" }, [rootBlock]);
+  yield makeMessage({ role, stage: "done", type: "extraction-done" }, [
+    rootBlock,
+  ]);
 }
