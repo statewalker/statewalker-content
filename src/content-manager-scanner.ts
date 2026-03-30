@@ -31,6 +31,12 @@ export interface ContentManagerScannerOptions {
   collectionId?: string;
   /** Path filter — return false to skip a file */
   filter?: (path: string) => boolean;
+  /** Yield control every N processed files (default: 50) */
+  batchSize?: number;
+  /** Milliseconds to sleep between batches (default: 10) */
+  sleepMs?: number;
+  /** Optional error handler (default: logs to console) */
+  onError?: (error: unknown) => void;
 }
 
 export class ContentManagerScanner {
@@ -40,8 +46,12 @@ export class ContentManagerScanner {
   private readonly files: FilesApi;
   private readonly collectionId: string;
   private readonly filter?: (path: string) => boolean;
+  private readonly batchSize: number;
+  private readonly sleepMs: number;
   private timer: ReturnType<typeof setInterval> | null = null;
   private running = false;
+  private stopped = false;
+  private onError: (error: unknown) => void;
 
   constructor(options: ContentManagerScannerOptions) {
     this.contentManager = options.contentManager;
@@ -50,6 +60,12 @@ export class ContentManagerScanner {
     this.files = options.files;
     this.collectionId = options.collectionId ?? "default";
     this.filter = options.filter;
+    this.batchSize = options.batchSize ?? 50;
+    this.sleepMs = options.sleepMs ?? 10;
+    this.onError =
+      options.onError ??
+      ((error: unknown) =>
+        console.error("ContentManagerScanner error:", error));
   }
 
   async *scan(): AsyncGenerator<ScanEvent> {
@@ -59,10 +75,15 @@ export class ContentManagerScanner {
     let removed = 0;
     let scanned = 0;
     let errors = 0;
+    let processed = 0;
 
     for await (const msg of this.scanner.scan({
       collectionId: this.collectionId,
-      options: { filter: this.filter },
+      options: {
+        filter: this.filter,
+        batchSize: this.batchSize,
+        sleepMs: this.sleepMs,
+      },
     })) {
       const eventType = msg.props.type;
       const uri = msg.props.uri;
@@ -88,6 +109,12 @@ export class ContentManagerScanner {
           errors++;
           yield { type: "file-error", uri, error: String(err) };
         }
+
+        // Yield control periodically during extraction/indexing
+        processed++;
+        if (this.sleepMs > 0 && processed % this.batchSize === 0) {
+          await new Promise((r) => setTimeout(r, this.sleepMs));
+        }
       } else if (eventType === "content-removed" && uri) {
         scanned++;
         try {
@@ -110,26 +137,33 @@ export class ContentManagerScanner {
   start(options?: { intervalMs?: number }): void {
     const interval = options?.intervalMs ?? 30_000;
     this.stop();
+    this.stopped = false;
 
     const doScan = async () => {
-      if (this.running) return;
+      if (this.running || this.stopped) return;
       this.running = true;
       try {
         for await (const _event of this.scan()) {
+          if (this.stopped) break;
           /* consume events */
         }
+      } catch (err) {
+        this.onError(err);
       } finally {
         this.running = false;
       }
+      if (!this.stopped) {
+        this.timer = setTimeout(doScan, interval);
+      }
     };
 
-    this.timer = setInterval(doScan, interval);
     void doScan();
   }
 
   stop(): void {
+    this.stopped = true;
     if (this.timer) {
-      clearInterval(this.timer);
+      clearTimeout(this.timer);
       this.timer = null;
     }
   }
