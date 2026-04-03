@@ -24,7 +24,7 @@ describe("createScanEvent", () => {
 
     const id = event.props?.id;
     expect(id).toBeDefined();
-    expect(id).toMatch(/^[0-9a-f]+$/);
+    expect(id).toMatch(/^[0-9A-HJKMNP-TV-Z]{13}$/); // Crockford base32
   });
 
   it("generates a valid ISO 8601 time", () => {
