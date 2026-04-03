@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SnowflakeId } from "../../src/ids/snowflake-id.js";
+import { SNOWFLAKE_BASE32_LENGTH, SnowflakeId } from "../../src/ids/index.js";
 
 describe("SnowflakeId", () => {
   it("should generate 1000 unique IDs", () => {
@@ -11,12 +11,19 @@ describe("SnowflakeId", () => {
     expect(ids.size).toBe(1000);
   });
 
-  it("should generate sequentially increasing IDs", () => {
+  it("should generate 13-char Crockford base32 IDs", () => {
     const snowflake = new SnowflakeId();
-    let prev = BigInt(`0x${snowflake.generate()}`);
+    const id = snowflake.generate();
+    expect(id).toHaveLength(SNOWFLAKE_BASE32_LENGTH);
+    expect(id).toMatch(/^[0-9A-HJKMNP-TV-Z]{13}$/);
+  });
+
+  it("should generate lexicographically increasing IDs", () => {
+    const snowflake = new SnowflakeId();
+    let prev = snowflake.generate();
     for (let i = 0; i < 100; i++) {
-      const curr = BigInt(`0x${snowflake.generate()}`);
-      expect(curr).toBeGreaterThan(prev);
+      const curr = snowflake.generate();
+      expect(curr > prev).toBe(true);
       prev = curr;
     }
   });
@@ -30,13 +37,17 @@ describe("SnowflakeId", () => {
     });
 
     const id1 = snowflake.generate();
-    const expected1 = ((1000n << 22n) | (1n << 12n) | 0n).toString(16);
-    expect(id1).toBe(expected1);
+    const parts1 = SnowflakeId.parseBase32(id1);
+    expect(parts1.timestamp).toBe(1000);
+    expect(parts1.workerId).toBe(1);
+    expect(parts1.sequence).toBe(0);
 
     // Same timestamp → sequence increments
     const id2 = snowflake.generate();
-    const expected2 = ((1000n << 22n) | (1n << 12n) | 1n).toString(16);
-    expect(id2).toBe(expected2);
+    const parts2 = SnowflakeId.parseBase32(id2);
+    expect(parts2.timestamp).toBe(1000);
+    expect(parts2.workerId).toBe(1);
+    expect(parts2.sequence).toBe(1);
   });
 
   it("should increment sequence for same timestamp and handle overflow", () => {
@@ -54,17 +65,21 @@ describe("SnowflakeId", () => {
     }
     expect(new Set(ids).size).toBe(4096);
 
-    // Verify sequence values
+    // Verify sequence values via parsing
     for (let i = 0; i < 4096; i++) {
-      const expected = ((5000n << 22n) | (0n << 12n) | BigInt(i)).toString(16);
-      expect(ids[i]).toBe(expected);
+      const id = ids[i];
+      expect(id).toBeDefined();
+      const parts = SnowflakeId.parseBase32(id as string);
+      expect(parts.sequence).toBe(i);
+      expect(parts.timestamp).toBe(5000);
     }
 
     // Next generate should cause overflow → clock advances
     time = 1609459200000 + 5001;
     const overflowId = snowflake.generate();
-    const expectedOverflow = ((5001n << 22n) | (0n << 12n) | 0n).toString(16);
-    expect(overflowId).toBe(expectedOverflow);
+    const overflowParts = SnowflakeId.parseBase32(overflowId);
+    expect(overflowParts.timestamp).toBe(5001);
+    expect(overflowParts.sequence).toBe(0);
   });
 
   it("should use custom epoch and workerId", () => {
@@ -77,18 +92,15 @@ describe("SnowflakeId", () => {
     });
 
     const id = snowflake.generate();
-    const expected = ((2000n << 22n) | (512n << 12n) | 0n).toString(16);
-    expect(id).toBe(expected);
+    const parts = SnowflakeId.parseBase32(id);
+    expect(parts.timestamp).toBe(2000);
+    expect(parts.workerId).toBe(512);
+    expect(parts.sequence).toBe(0);
   });
 
-  it("parseHex should parse hex ID into components", () => {
-    const snowflake = new SnowflakeId({
-      epoch: 1609459200000,
-      workerId: 42,
-      now: () => 1609459200000 + 3000,
-    });
-
-    const hex = snowflake.generate();
+  it("parseHex should parse legacy hex ID into components", () => {
+    const id = (3000n << 22n) | (42n << 12n) | 0n;
+    const hex = id.toString(16);
     const parts = SnowflakeId.parseHex(hex);
 
     expect(parts.timestamp).toBe(3000);
@@ -106,14 +118,28 @@ describe("SnowflakeId", () => {
     expect(parts.sequence).toBe(5);
   });
 
-  it("parse should auto-detect hex (contains a-f chars)", () => {
-    const id = (3000n << 22n) | (42n << 12n) | 0n;
-    const hex = id.toString(16);
-    const parts = SnowflakeId.parse(hex);
+  it("parse should auto-detect Crockford base32 (13 chars)", () => {
+    const snowflake = new SnowflakeId({
+      epoch: 1609459200000,
+      workerId: 42,
+      now: () => 1609459200000 + 3000,
+    });
+    const id = snowflake.generate();
+    expect(id).toHaveLength(13);
 
+    const parts = SnowflakeId.parse(id);
     expect(parts.timestamp).toBe(3000);
     expect(parts.workerId).toBe(42);
-    expect(parts.sequence).toBe(0);
+  });
+
+  it("parse should auto-detect hex (non-13-char string)", () => {
+    const id = (3000n << 22n) | (42n << 12n) | 0n;
+    const hex = id.toString(16);
+    expect(hex.length).not.toBe(13);
+
+    const parts = SnowflakeId.parse(hex);
+    expect(parts.timestamp).toBe(3000);
+    expect(parts.workerId).toBe(42);
   });
 
   it("parse should auto-detect decimal (long all-digit string)", () => {

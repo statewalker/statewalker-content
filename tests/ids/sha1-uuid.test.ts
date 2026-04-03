@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sha1Bytes, sha1Uuid } from "../../src/ids/sha1-uuid.js";
+import { sha1Bytes, sha1Uuid } from "../../src/ids/index.js";
 
 describe("sha1Uuid", () => {
   it("should generate a 40-character hex string", async () => {
