@@ -5,8 +5,15 @@ export type { SnowflakeOptions, SnowflakeParts } from "@repo/ids";
 export {
   crockfordDecode,
   crockfordEncode,
+  extractTime,
+  parseSnowflake,
+  parseSnowflakeBase32,
+  parseSnowflakeDec,
+  parseSnowflakeHex,
   SNOWFLAKE_BASE32_LENGTH,
   SnowflakeId,
   sha1Bytes,
   sha1Uuid,
+  snowflakeToDecimal,
+  snowflakeToHex,
 } from "@repo/ids";
