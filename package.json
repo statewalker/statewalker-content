@@ -22,6 +22,10 @@
   },
   "dependencies": {
     "@repo/content-blocks": "workspace:*",
+    "@repo/content-extractors": "workspace:*",
+    "@repo/indexer-api": "workspace:*",
+    "@repo/indexer-chunker": "workspace:*",
+    "@repo/streams": "workspace:*",
     "@statewalker/webrun-files": "catalog:"
   },
   "devDependencies": {

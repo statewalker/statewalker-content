@@ -1,7 +1,4 @@
-import type {
-  ContentMessage,
-  ContentMessageProps,
-} from "@repo/content-blocks";
+import type { ContentMessage, ContentMessageProps } from "@repo/content-blocks";
 import type { FilesApi } from "@statewalker/webrun-files";
 
 /**
