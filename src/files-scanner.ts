@@ -105,16 +105,7 @@ export class FilesScanner extends Scanner {
     }
 
     if (!changed && existing && !existing.removed) {
-      // No change — still return an update to stamp the entry as visited
-      return {
-        uri,
-        stamp: new Date(),
-        meta: {
-          size,
-          lastModified,
-          hash: (existing.meta?.hash as string) ?? hash,
-        },
-      };
+      return null; // unchanged — skip re-stamping
     }
 
     return {
