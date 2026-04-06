@@ -24,14 +24,15 @@
     "format:check": "biome format ."
   },
   "dependencies": {
-    "@repo/content-blocks": "workspace:*",
     "@repo/content-extractors": "workspace:*",
     "@repo/content-scanner": "workspace:*",
     "@repo/indexer-api": "workspace:*",
+    "@repo/indexer-chunker": "workspace:*",
     "@statewalker/webrun-files": "catalog:"
   },
   "devDependencies": {
     "@repo/indexer-mem-flexsearch": "workspace:*",
+    "@statewalker/webrun-files-mem": "workspace:*",
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

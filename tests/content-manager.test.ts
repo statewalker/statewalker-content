@@ -1,233 +1,139 @@
+import { createDefaultRegistry } from "@repo/content-extractors/extractors";
+import { FilesScanRegistry } from "@repo/content-scanner";
 import { createFlexSearchIndexer } from "@repo/indexer-mem-flexsearch";
+import { writeText } from "@statewalker/webrun-files";
+import { MemFilesApi } from "@statewalker/webrun-files-mem";
 import { describe, expect, it } from "vitest";
 import { createContentManager } from "../src/content-manager.js";
-import type { ContentStorage } from "../src/types.js";
+import type { SyncEvent } from "../src/types.js";
 
-function createMemoryStorage(): ContentStorage {
-  const store = new Map<string, string>();
-  return {
-    async get(key: string) {
-      return store.get(key) ?? null;
-    },
-    async set(key: string, content: string) {
-      store.set(key, content);
-    },
-    async delete(key: string) {
-      store.delete(key);
-    },
-    async *list() {
-      for (const key of store.keys()) {
-        yield key;
-      }
-    },
-  };
+function setup() {
+  const files = new MemFilesApi();
+  const registry = new FilesScanRegistry({ files, prefix: "/.index/scan" });
+  const indexer = createFlexSearchIndexer();
+  const extractors = createDefaultRegistry();
+  const manager = createContentManager({
+    registry,
+    indexer,
+    files,
+    extractors,
+    root: "/",
+    filter: (path: string) => !path.startsWith("/.index/"),
+  });
+  return { files, registry, indexer, manager };
 }
 
-describe("content-manager", () => {
-  it("should store and retrieve a document by URI", async () => {
-    const indexer = createFlexSearchIndexer();
-    const storage = createMemoryStorage();
-    const manager = createContentManager({ indexer, storage });
+async function collectEvents(
+  gen: AsyncGenerator<SyncEvent>,
+): Promise<SyncEvent[]> {
+  const events: SyncEvent[] = [];
+  for await (const e of gen) events.push(e);
+  return events;
+}
 
-    const doc = await manager.setRawContent({
-      uri: "file:///test.md",
-      content:
-        "# Hello\n\nThis is a test document.\n\n# World\n\nAnother section.",
-    });
+describe("content-manager orchestrator", () => {
+  it("syncs files through the full pipeline", async () => {
+    const { files, manager } = setup();
 
-    expect(doc.uri).toBe("file:///test.md");
-    expect(doc.blocks.length).toBeGreaterThan(0);
-    expect(typeof doc.documentId).toBe("string");
+    await writeText(files, "/readme.md", "# Hello\n\nThis is a readme file.");
+    await writeText(
+      files,
+      "/guide.md",
+      "# Guide\n\nHow to use this project.\n\n# Setup\n\nRun npm install.",
+    );
 
-    const retrieved = await manager.getDocumentByUri("file:///test.md");
-    expect(retrieved).not.toBeNull();
-    expect(retrieved?.documentId).toBe(doc.documentId);
-    expect(retrieved?.blocks.length).toBe(doc.blocks.length);
+    const events = await collectEvents(manager.sync());
 
-    await manager.close();
-  });
+    const started = events.find((e) => e.type === "sync-started");
+    expect(started).toBeDefined();
 
-  it("should store and retrieve a document by documentId", async () => {
-    const indexer = createFlexSearchIndexer();
-    const storage = createMemoryStorage();
-    const manager = createContentManager({ indexer, storage });
+    const done = events.find((e) => e.type === "sync-done");
+    expect(done).toBeDefined();
+    expect(done?.type === "sync-done" && done.stats.indexed).toBe(2);
+    expect(done?.type === "sync-done" && done.stats.errors).toBe(0);
 
-    const doc = await manager.setRawContent({
-      uri: "file:///test.md",
-      content: "# Title\n\nContent here.",
-    });
-
-    const retrieved = await manager.getDocumentById(doc.documentId);
-    expect(retrieved).not.toBeNull();
-    expect(retrieved?.uri).toBe("file:///test.md");
+    const indexed = events.filter((e) => e.type === "file-indexed");
+    expect(indexed).toHaveLength(2);
 
     await manager.close();
   });
 
-  it("should assign string block IDs with documentId prefix", async () => {
-    const indexer = createFlexSearchIndexer();
-    const storage = createMemoryStorage();
-    const manager = createContentManager({ indexer, storage });
+  it("search finds indexed content", async () => {
+    const { files, manager } = setup();
 
-    const doc = await manager.setRawContent({
-      uri: "file:///multi.md",
-      content:
-        "# First\n\nFirst block.\n\n# Second\n\nSecond block.\n\n# Third\n\nThird block.",
-    });
+    await writeText(
+      files,
+      "/animals.md",
+      "# Cats\n\nCats are furry animals that purr.\n\n# Dogs\n\nDogs are loyal companions.",
+    );
+    await writeText(
+      files,
+      "/plants.md",
+      "# Roses\n\nRoses are red flowers.\n\n# Tulips\n\nTulips bloom in spring.",
+    );
 
-    expect(doc.blocks.length).toBe(3);
-    for (let i = 0; i < doc.blocks.length; i++) {
-      const block = doc.blocks[i];
-      expect(block).toBeDefined();
-      expect(block?.blockId).toContain(":");
-      expect(block?.blockId.endsWith(`:${i}`)).toBe(true);
-      expect(block?.documentId).toBe(doc.documentId);
-    }
-
-    await manager.close();
-  });
-
-  it("should retrieve a block by blockId", async () => {
-    const indexer = createFlexSearchIndexer();
-    const storage = createMemoryStorage();
-    const manager = createContentManager({ indexer, storage });
-
-    const doc = await manager.setRawContent({
-      uri: "file:///blocks.md",
-      content: "# Alpha\n\nAlpha content.\n\n# Beta\n\nBeta content.",
-    });
-
-    const secondBlock = doc.blocks[1];
-    expect(secondBlock).toBeDefined();
-    const block = await manager.getBlockById(secondBlock?.blockId ?? "");
-    expect(block).not.toBeNull();
-    expect(block?.title).toBe("Beta");
-    expect(block?.content).toContain("Beta content");
-
-    await manager.close();
-  });
-
-  it("should search and find matching blocks", async () => {
-    const indexer = createFlexSearchIndexer();
-    const storage = createMemoryStorage();
-    const manager = createContentManager({ indexer, storage });
-
-    await manager.setRawContent({
-      uri: "file:///animals.md",
-      content:
-        "# Cats\n\nCats are furry animals that purr.\n\n# Dogs\n\nDogs are loyal companions that bark.",
-    });
-
-    await manager.setRawContent({
-      uri: "file:///plants.md",
-      content:
-        "# Roses\n\nRoses are red flowers.\n\n# Tulips\n\nTulips bloom in spring.",
-    });
+    await collectEvents(manager.sync());
 
     const hits = await manager.search({ queries: ["cats furry"] });
     expect(hits.length).toBeGreaterThan(0);
-    expect(hits[0]?.uri).toBe("file:///animals.md");
+    expect(hits[0]?.uri).toContain("animals.md");
 
     await manager.close();
   });
 
-  it("should remove content and no longer find it", async () => {
-    const indexer = createFlexSearchIndexer();
-    const storage = createMemoryStorage();
-    const manager = createContentManager({ indexer, storage });
+  it("status reports file and index counts", async () => {
+    const { files, manager } = setup();
 
-    await manager.setRawContent({
-      uri: "file:///ephemeral.md",
-      content:
-        "# Temporary\n\nThis content is ephemeral and should be removed.",
-    });
+    await writeText(files, "/a.md", "# A\n\nContent A.");
+    await writeText(files, "/b.md", "# B\n\nContent B.");
+    await writeText(files, "/c.txt", "Plain text content.");
 
-    const before = await manager.getDocumentByUri("file:///ephemeral.md");
-    expect(before).not.toBeNull();
+    await collectEvents(manager.sync());
 
-    await manager.removeContent("file:///ephemeral.md");
-
-    const after = await manager.getDocumentByUri("file:///ephemeral.md");
-    expect(after).toBeNull();
-
-    const hits = await manager.search({ queries: ["ephemeral"] });
-    expect(hits).toEqual([]);
+    const status = await manager.status();
+    // All 3 files detected
+    expect(status.files).toBe(3);
+    // Only .md and .txt have extractors
+    expect(status.indexed).toBeGreaterThanOrEqual(2);
 
     await manager.close();
   });
 
-  it("should handle re-indexing the same URI", async () => {
-    const indexer = createFlexSearchIndexer();
-    const storage = createMemoryStorage();
-    const manager = createContentManager({ indexer, storage });
+  it("incremental sync skips unchanged files", async () => {
+    const { files, manager } = setup();
 
-    const doc1 = await manager.setRawContent({
-      uri: "file:///mutable.md",
-      content: "# Version 1\n\nOriginal content.",
-    });
+    await writeText(files, "/doc.md", "# Doc\n\nOriginal content.");
+    const events1 = await collectEvents(manager.sync());
+    const done1 = events1.find((e) => e.type === "sync-done");
+    expect(done1?.type === "sync-done" && done1.stats.indexed).toBe(1);
 
-    const doc2 = await manager.setRawContent({
-      uri: "file:///mutable.md",
-      content: "# Version 2\n\nUpdated content.\n\n# Extra\n\nMore stuff.",
-    });
-
-    // Same URI produces same hash-based documentId
-    expect(doc2.documentId).toBe(doc1.documentId);
-    expect(doc2.blocks.length).toBe(2);
-
-    // New doc should be retrievable
-    const newDoc = await manager.getDocumentByUri("file:///mutable.md");
-    expect(newDoc).not.toBeNull();
-    expect(newDoc?.documentId).toBe(doc2.documentId);
+    // Second sync without changes — no new indexing
+    const events2 = await collectEvents(manager.sync());
+    const done2 = events2.find((e) => e.type === "sync-done");
+    expect(done2?.type === "sync-done" && done2.stats.indexed).toBe(0);
 
     await manager.close();
   });
 
-  it("should handle multiple documents with distinct documentIds", async () => {
-    const indexer = createFlexSearchIndexer();
-    const storage = createMemoryStorage();
-    const manager = createContentManager({ indexer, storage });
+  it("clear removes all stores and index", async () => {
+    const { files, manager, registry } = setup();
 
-    const doc1 = await manager.setRawContent({
-      uri: "file:///a.md",
-      content: "# A\n\nDocument A.",
-    });
-    const doc2 = await manager.setRawContent({
-      uri: "file:///b.md",
-      content: "# B\n\nDocument B.",
-    });
-    const doc3 = await manager.setRawContent({
-      uri: "file:///c.md",
-      content: "# C\n\nDocument C.",
-    });
+    await writeText(files, "/doc.md", "# Doc\n\nContent.");
+    await collectEvents(manager.sync());
 
-    expect(doc1.documentId).not.toBe(doc2.documentId);
-    expect(doc2.documentId).not.toBe(doc3.documentId);
+    const statusBefore = await manager.status();
+    expect(statusBefore.files).toBe(1);
 
-    // All retrievable
-    expect(await manager.getDocumentById(doc1.documentId)).not.toBeNull();
-    expect(await manager.getDocumentById(doc2.documentId)).not.toBeNull();
-    expect(await manager.getDocumentById(doc3.documentId)).not.toBeNull();
+    await manager.clear();
+
+    const names = await registry.getStoreNames();
+    expect(names).toHaveLength(0);
 
     await manager.close();
   });
 
-  it("should return null for nonexistent document/block", async () => {
-    const indexer = createFlexSearchIndexer();
-    const storage = createMemoryStorage();
-    const manager = createContentManager({ indexer, storage });
-
-    expect(await manager.getDocumentById("nonexistent")).toBeNull();
-    expect(await manager.getDocumentByUri("file:///nope.md")).toBeNull();
-    expect(await manager.getBlockById("nonexistent:0")).toBeNull();
-
-    await manager.close();
-  });
-
-  it("should return empty results for search with no content", async () => {
-    const indexer = createFlexSearchIndexer();
-    const storage = createMemoryStorage();
-    const manager = createContentManager({ indexer, storage });
+  it("returns empty results for search with no content", async () => {
+    const { manager } = setup();
 
     const hits = await manager.search({ queries: ["anything"] });
     expect(hits).toEqual([]);
@@ -235,58 +141,22 @@ describe("content-manager", () => {
     await manager.close();
   });
 
-  it("should use normalize function when provided", async () => {
-    const indexer = createFlexSearchIndexer();
-    const storage = createMemoryStorage();
-    const manager = createContentManager({
-      indexer,
-      storage,
-      normalize: async (content: string) => content.toUpperCase(),
-    });
+  it("handles file removal", async () => {
+    const { files, manager } = setup();
 
-    const doc = await manager.setRawContent({
-      uri: "file:///norm.md",
-      content: "# hello\n\nworld",
-    });
+    await writeText(files, "/temp.md", "# Temporary\n\nWill be removed.");
+    await collectEvents(manager.sync());
 
-    expect(doc.blocks.length).toBeGreaterThan(0);
-    const allContent = doc.blocks.map((b) => b.content).join(" ");
-    expect(allContent).toContain("WORLD");
+    const status1 = await manager.status();
+    expect(status1.indexed).toBe(1);
+
+    // Remove the file and re-sync
+    await files.remove("/temp.md");
+    const events = await collectEvents(manager.sync());
+
+    const removed = events.filter((e) => e.type === "file-removed");
+    expect(removed).toHaveLength(1);
 
     await manager.close();
-  });
-
-  it("should persist and restore documents across ContentManager instances", async () => {
-    const storage = createMemoryStorage();
-
-    // First instance: store documents
-    const indexer1 = createFlexSearchIndexer();
-    const manager1 = createContentManager({ indexer: indexer1, storage });
-
-    const doc = await manager1.setRawContent({
-      uri: "file:///persist.md",
-      content: "# Persistent\n\nThis survives restart.",
-    });
-    expect(doc.blocks.length).toBeGreaterThan(0);
-    await manager1.close();
-
-    // Second instance: same storage, fresh indexer
-    const indexer2 = createFlexSearchIndexer();
-    const manager2 = createContentManager({ indexer: indexer2, storage });
-
-    // Document should be loadable from storage
-    const restored = await manager2.getDocumentByUri("file:///persist.md");
-    expect(restored).not.toBeNull();
-    expect(restored?.uri).toBe("file:///persist.md");
-    expect(restored?.blocks.length).toBe(doc.blocks.length);
-
-    // Block lookup should work
-    const firstBlock = doc.blocks[0];
-    expect(firstBlock).toBeDefined();
-    const block = await manager2.getBlockById(firstBlock?.blockId ?? "");
-    expect(block).not.toBeNull();
-    expect(block?.title).toBe("Persistent");
-
-    await manager2.close();
   });
 });
