@@ -124,7 +124,7 @@ describe("content-manager", () => {
         "# Roses\n\nRoses are red flowers.\n\n# Tulips\n\nTulips bloom in spring.",
     });
 
-    const hits = await manager.search("cats furry");
+    const hits = await manager.search({ queries: ["cats furry"] });
     expect(hits.length).toBeGreaterThan(0);
     expect(hits[0]?.uri).toBe("file:///animals.md");
 
@@ -150,7 +150,7 @@ describe("content-manager", () => {
     const after = await manager.getDocumentByUri("file:///ephemeral.md");
     expect(after).toBeNull();
 
-    const hits = await manager.search("ephemeral");
+    const hits = await manager.search({ queries: ["ephemeral"] });
     expect(hits).toEqual([]);
 
     await manager.close();
@@ -229,7 +229,7 @@ describe("content-manager", () => {
     const storage = createMemoryStorage();
     const manager = createContentManager({ indexer, storage });
 
-    const hits = await manager.search("anything");
+    const hits = await manager.search({ queries: ["anything"] });
     expect(hits).toEqual([]);
 
     await manager.close();

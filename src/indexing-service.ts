@@ -3,11 +3,25 @@ import type {
   DocumentPath,
   EmbedFn,
   HybridSearchResult,
+  HybridWeights,
   Index,
   Indexer,
 } from "@repo/indexer-api";
 import { SemanticIndex } from "@repo/indexer-api";
 import type { StoredBlock } from "./types.js";
+
+export interface IndexSearchParams {
+  /** One or more full-text search queries. Blocks matching more queries rank higher. */
+  queries: string[];
+  /** Queries whose text is embedded for vector similarity search. Requires an embed function. */
+  semanticQueries?: string[];
+  /** Maximum number of results to return. */
+  topK: number;
+  /** Path prefixes to restrict the search scope. */
+  paths?: DocumentPath[];
+  /** Relative weights for blending FTS and embedding scores. */
+  weights?: HybridWeights;
+}
 
 export interface IndexingServiceOptions {
   indexer: Indexer;
@@ -100,25 +114,32 @@ export class IndexingService {
   }
 
   async search(
-    query: string,
-    topK: number,
+    params: IndexSearchParams,
   ): Promise<Array<{ blockId: string; score: number }>> {
     await this.ensureIndex();
+    if (!this.index) return [];
 
-    if (this.semanticIndex) {
-      const results = await this.semanticIndex.search({ query, topK });
-      return results.map((r) => ({ blockId: r.blockId, score: r.score }));
+    const { queries, semanticQueries, topK, paths, weights } = params;
+
+    let embeddings: Float32Array[] | undefined;
+    const embedFn = this.embed;
+    if (semanticQueries?.length && embedFn) {
+      embeddings = await Promise.all(
+        semanticQueries.map((q) => embedFn(q)),
+      );
     }
 
-    if (this.index) {
-      const results: HybridSearchResult[] = [];
-      for await (const r of this.index.search({ queries: [query], topK })) {
-        results.push(r);
-      }
-      return results.map((r) => ({ blockId: r.blockId, score: r.score }));
+    const results: HybridSearchResult[] = [];
+    for await (const r of this.index.search({
+      queries,
+      embeddings,
+      topK,
+      paths,
+      weights,
+    })) {
+      results.push(r);
     }
-
-    return [];
+    return results.map((r) => ({ blockId: r.blockId, score: r.score }));
   }
 
   async close(): Promise<void> {

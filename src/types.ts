@@ -25,6 +25,19 @@ export interface SearchHit {
   score: number;
 }
 
+export interface ContentSearchParams {
+  /** One or more full-text search queries. Blocks matching more queries rank higher. */
+  queries: string[];
+  /** Queries whose text is embedded for vector similarity search. */
+  semanticQueries?: string[];
+  /** Maximum number of results to return. Defaults to 10. */
+  topK?: number;
+  /** Path prefixes to restrict the search scope. */
+  paths?: string[];
+  /** Relative weights for blending FTS and embedding scores. */
+  weights?: { fts: number; embedding: number };
+}
+
 export interface ContentStorage {
   get(key: string): Promise<string | null>;
   set(key: string, content: string): Promise<void>;
@@ -49,6 +62,6 @@ export interface ContentManager {
   getDocumentById(documentId: string): Promise<StoredDocument | null>;
   getDocumentByUri(uri: string): Promise<StoredDocument | null>;
   getBlockById(blockId: string): Promise<StoredBlock | null>;
-  search(query: string, options?: { topK?: number }): Promise<SearchHit[]>;
+  search(params: ContentSearchParams): Promise<SearchHit[]>;
   close(): Promise<void>;
 }

@@ -5,13 +5,14 @@ export type {
 } from "./content-manager-scanner.js";
 export { ContentManagerScanner } from "./content-manager-scanner.js";
 export { DocumentStore } from "./document-store.js";
-export type { IndexingServiceOptions } from "./indexing-service.js";
+export type { IndexSearchParams, IndexingServiceOptions } from "./indexing-service.js";
 export { IndexingService } from "./indexing-service.js";
 export type { ParsedBlocks } from "./normalization-pipeline.js";
 export { NormalizationPipeline } from "./normalization-pipeline.js";
 export type {
   ContentManager,
   ContentManagerOptions,
+  ContentSearchParams,
   ContentStorage,
   SearchHit,
   StoredBlock,

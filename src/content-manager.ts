@@ -1,3 +1,4 @@
+import type { DocumentPath } from "@repo/indexer-api";
 import { DocumentStore } from "./document-store.js";
 import { IndexingService } from "./indexing-service.js";
 import { NormalizationPipeline } from "./normalization-pipeline.js";
@@ -64,13 +65,16 @@ export function createContentManager(
       return store.getBlock(blockId);
     },
 
-    async search(
-      query: string,
-      searchOptions?: { topK?: number },
-    ): Promise<SearchHit[]> {
-      const topK = searchOptions?.topK ?? 10;
+    async search(params): Promise<SearchHit[]> {
+      const { queries, semanticQueries, topK = 10, paths, weights } = params;
 
-      const results = await indexing.search(query, topK);
+      const results = await indexing.search({
+        queries,
+        semanticQueries,
+        topK,
+        paths: paths as DocumentPath[] | undefined,
+        weights,
+      });
 
       const hits: SearchHit[] = [];
       for (const result of results) {
