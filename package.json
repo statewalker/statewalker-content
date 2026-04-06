@@ -25,7 +25,6 @@
     "format": "biome format --write ."
   },
   "dependencies": {
-    "@repo/content-blocks": "workspace:*",
     "@repo/content-extractors": "workspace:*",
     "@repo/content-manager": "workspace:*",
     "@repo/content-scanner": "workspace:*",

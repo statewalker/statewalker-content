@@ -40,7 +40,12 @@ describe("content-cli", () => {
   });
 
   it("finds cooking-pasta for pasta query", () => {
-    const output = run("search", "how to make pasta dough at home", "--limit", "3");
+    const output = run(
+      "search",
+      "how to make pasta dough at home",
+      "--limit",
+      "3",
+    );
     expect(output).toContain("cooking-pasta.md");
     // Cooking pasta should be the top result
     const firstResult = output.split("---")[1] ?? "";
