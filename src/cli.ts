@@ -18,7 +18,7 @@ async function writeBytes(
   await files.write(path, [data]);
 }
 
-const DEFAULT_SYSTEM_FOLDER = ".content-index";
+const DEFAULT_SYSTEM_FOLDER = ".settings";
 
 function printUsage(): void {
   console.log(`Usage: content-cli <path> [command] [options]
@@ -89,22 +89,12 @@ function createFilePersistence(
   return {
     async save(entries: AsyncIterable<PersistenceEntry>): Promise<void> {
       for await (const entry of entries) {
-        const chunks: Uint8Array[] = [];
-        for await (const chunk of entry.content) {
-          chunks.push(chunk);
-        }
-        const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
-        const data = new Uint8Array(totalLength);
-        let offset = 0;
-        for (const chunk of chunks) {
-          data.set(chunk, offset);
-          offset += chunk.length;
-        }
-        const safe = entry.name.replace(
-          /[^a-zA-Z0-9._-]/g,
-          (ch) => `_${ch.charCodeAt(0)}_`,
+        const safeName = entry.name.replace(
+          /[^a-zA-Z0-9_-]/g,
+          (c) => `_${c.charCodeAt(0)}_`,
         );
-        await writeBytes(files, `${basePath}/${safe}.bin`, data);
+        const filePath = `${basePath}/${safeName}.bin`;
+        await files.write(filePath, entry.content);
       }
     },
     async *load(): AsyncIterable<PersistenceEntry> {
@@ -119,7 +109,7 @@ function createFilePersistence(
             yield {
               name,
               content: (async function* () {
-                yield await readFile(files, path);
+                yield* files.read(path);
               })(),
             };
           }
