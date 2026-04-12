@@ -16,10 +16,9 @@ export * from "./markdown-normalizer.js";
 // Observable utility
 export { Notifiable, onChange } from "./notifiable.js";
 export {
-  createEmbeddingModel,
-  createProvider,
   PROVIDER_NAMES,
   type ProviderName,
+  verifyModelAccess,
 } from "./provider-factory.js";
 export type {
   ContentSummarizer,

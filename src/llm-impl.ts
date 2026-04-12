@@ -15,14 +15,14 @@ import type {
   TextCompletionOptions,
 } from "./llm-api.js";
 import { toCoreMessages } from "./messages/message-convert.js";
-import { createProvider, type ProviderName } from "./provider-factory.js";
+import { createRemoteProvider, type ProviderName } from "./provider-factory.js";
 
 export class LlmApi implements ILlmApi {
   private provider: ProviderV3 | undefined;
   private toolSets: ToolSet[] = [];
 
   connect(options: ConnectOptions): void {
-    this.provider = createProvider(
+    this.provider = createRemoteProvider(
       options.provider as ProviderName,
       options.apiKey,
     );
