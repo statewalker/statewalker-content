@@ -53,15 +53,17 @@ function toCoreMessage(msg: LlmMessage): ModelMessage {
     case "tool":
       return {
         role: "tool",
-        content: (Array.isArray(msg.content) ? msg.content : []).map((part) => ({
-          type: "tool-result" as const,
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          output: {
-            type: "json" as const,
-            value: (part.result ?? null) as import("ai").JSONValue,
-          },
-        })),
+        content: (Array.isArray(msg.content) ? msg.content : []).map(
+          (part) => ({
+            type: "tool-result" as const,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            output: {
+              type: "json" as const,
+              value: (part.result ?? null) as import("ai").JSONValue,
+            },
+          }),
+        ),
       };
   }
 }

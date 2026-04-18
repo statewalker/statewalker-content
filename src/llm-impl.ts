@@ -85,7 +85,8 @@ export class LlmApi implements ILlmApi {
       abortSignal: options.signal,
       tools,
       stopWhen: stepCountIs(maxSteps),
-      providerOptions: options.providerOptions as import("@ai-sdk/provider-utils").ProviderOptions,
+      providerOptions:
+        options.providerOptions as import("@ai-sdk/provider-utils").ProviderOptions,
     });
     for await (const part of result.fullStream) {
       switch (part.type) {
