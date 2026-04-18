@@ -3,8 +3,8 @@
  * Previously a duplicate factory — now consolidated.
  */
 export {
-  type ProviderName,
   PROVIDER_NAMES,
+  type ProviderName,
   verifyModelAccess,
 } from "@statewalker/ai-provider";
 
@@ -18,14 +18,23 @@ import type { ProviderName as PN } from "@statewalker/ai-provider";
  * Create a remote AI SDK provider from a provider name and API key.
  * Used internally by LlmApi.connect().
  */
-export function createRemoteProvider(name: PN, apiKey: string): ProviderV3 {
+export function createRemoteProvider(
+  name: PN,
+  apiKey: string,
+  baseURL?: string,
+): ProviderV3 {
   switch (name) {
     case "anthropic":
-      return createAnthropic({ apiKey });
+      return createAnthropic({ apiKey, baseURL });
     case "google":
-      return createGoogleGenerativeAI({ apiKey });
+      return createGoogleGenerativeAI({ apiKey, baseURL });
     case "openai":
-      return createOpenAI({ apiKey });
+      return createOpenAI({ apiKey, baseURL });
+    case "openai-compatible":
+      if (!baseURL) {
+        throw new Error("openai-compatible provider requires baseURL");
+      }
+      return createOpenAI({ apiKey, baseURL });
     default:
       throw new Error(`Unknown provider: ${name as string}`);
   }
