@@ -1,0 +1,53 @@
+{
+  "name": "@statewalker/content-scanner",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Content scanner: walks a @statewalker/webrun-files tree and streams @statewalker/content-blocks through extractors into indexers.",
+  "homepage": "https://github.com/statewalker/statewalker-content",
+  "author": {
+    "name": "Mikhail Kotelnikov",
+    "email": "mikhail.kotelnikov@gmail.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statewalker/statewalker-content.git"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist",
+    "lint": "biome check --write .",
+    "format": "biome format --write ."
+  },
+  "dependencies": {
+    "@statewalker/content-blocks": "workspace:*",
+    "@statewalker/content-extractors": "workspace:*",
+    "@statewalker/indexer-api": "workspace:*",
+    "@statewalker/indexer-chunker": "workspace:*",
+    "@repo/streams": "workspace:*",
+    "@statewalker/webrun-files": "catalog:"
+  },
+  "devDependencies": {
+    "@statewalker/webrun-files-mem": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  }
+}

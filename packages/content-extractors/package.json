@@ -1,0 +1,57 @@
+{
+  "name": "@statewalker/content-extractors",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Content extractors: turn PDF, DOCX, XLSX, Markdown, and HTML into @statewalker/content-blocks.",
+  "homepage": "https://github.com/statewalker/statewalker-content",
+  "author": {
+    "name": "Mikhail Kotelnikov",
+    "email": "mikhail.kotelnikov@gmail.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statewalker/statewalker-content.git"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./extractors": "./src/extractors/index.ts"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist",
+    "lint": "biome check --write .",
+    "format": "biome format --write ."
+  },
+  "dependencies": {
+    "@statewalker/content-blocks": "workspace:*",
+    "exceljs": "^4.4.0",
+    "mammoth": "^1.8.0",
+    "markdown-it": "catalog:",
+    "unpdf": "^1.4.0",
+    "turndown": "catalog:",
+    "@joplin/turndown-plugin-gfm": "^1.0.56"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "catalog:",
+    "@types/turndown": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "name": "@statewalker/content-cli",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Command-line front end for the @statewalker/content pipeline.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statewalker/statewalker-content.git"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "content-cli": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "start": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist",
+    "lint": "biome check --write .",
+    "format": "biome format --write ."
+  },
+  "dependencies": {
+    "@statewalker/content-extractors": "workspace:*",
+    "@statewalker/content-manager": "workspace:*",
+    "@statewalker/content-scanner": "workspace:*",
+    "@statewalker/indexer-api": "workspace:*",
+    "@statewalker/indexer-mem-flexsearch": "workspace:*",
+    "@statewalker/webrun-files": "catalog:",
+    "@statewalker/webrun-files-node": "^0.7.0"
+  },
+  "devDependencies": {
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "tsx": "^4.19.4",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

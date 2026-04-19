@@ -1,0 +1,62 @@
+{
+  "name": "@statewalker/content-llm",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Content-aware LLM adapters: messages, reasoning, skills, MCP, and tools wired to @statewalker/content-blocks.",
+  "homepage": "https://github.com/statewalker/statewalker-content",
+  "author": {
+    "name": "Mikhail Kotelnikov",
+    "email": "mikhail.kotelnikov@gmail.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statewalker/statewalker-content.git"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./messages": "./src/messages/index.ts",
+    "./reasoning": "./src/reasoning/index.ts",
+    "./skills": "./src/skills/index.ts",
+    "./mcp": "./src/mcp/index.ts",
+    "./tools": "./src/tools/index.ts"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist",
+    "lint": "biome check --write .",
+    "format": "biome format --write ."
+  },
+  "dependencies": {
+    "@statewalker/content-blocks": "workspace:*",
+    "@ai-sdk/anthropic": "^3.0.68",
+    "@ai-sdk/google": "^3.0.61",
+    "@ai-sdk/mcp": "^1.0.25",
+    "@ai-sdk/openai": "^3.0.52",
+    "@ai-sdk/provider": "^3.0.8",
+    "@statewalker/ai-provider": "workspace:*",
+    "@ai-sdk/provider-utils": "^4.0.19",
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "ai": "^6.0.116",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  }
+}
