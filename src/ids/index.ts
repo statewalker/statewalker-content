@@ -1,7 +1,7 @@
-// Re-export from @repo/ids for backward compatibility.
-// New code should import directly from @repo/ids.
+// Re-export from @statewalker/ids for backward compatibility.
+// New code should import directly from @statewalker/ids.
 
-export type { SnowflakeOptions, SnowflakeParts } from "@repo/ids";
+export type { SnowflakeOptions, SnowflakeParts } from "@statewalker/ids";
 export {
   crockfordDecode,
   crockfordEncode,
@@ -16,4 +16,4 @@ export {
   sha1Uuid,
   snowflakeToDecimal,
   snowflakeToHex,
-} from "@repo/ids";
+} from "@statewalker/ids";

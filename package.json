@@ -23,7 +23,7 @@
     "format": "biome format --write ."
   },
   "dependencies": {
-    "@repo/ids": "workspace:*"
+    "@statewalker/ids": "workspace:*"
   },
   "devDependencies": {
     "tsdown": "catalog:",
