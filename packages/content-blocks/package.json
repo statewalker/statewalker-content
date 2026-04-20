@@ -34,7 +34,7 @@
     "format": "biome format --write ."
   },
   "dependencies": {
-    "@statewalker/ids": "^0.1.0"
+    "@statewalker/ids": "catalog:"
   },
   "devDependencies": {
     "rimraf": "catalog:",
