@@ -43,7 +43,7 @@
     "@ai-sdk/mcp": "^1.0.25",
     "@ai-sdk/openai": "^3.0.52",
     "@ai-sdk/provider": "^3.0.8",
-    "@statewalker/ai-provider": "workspace:*",
+    "@statewalker/ai-provider": "^0.1.0",
     "@ai-sdk/provider-utils": "^4.0.19",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "ai": "^6.0.116",
