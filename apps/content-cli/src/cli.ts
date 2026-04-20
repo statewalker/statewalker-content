@@ -9,10 +9,6 @@ import { createFlexSearchIndexer } from "@statewalker/indexer-mem-flexsearch";
 import type { FilesApi } from "@statewalker/webrun-files";
 import { NodeFilesApi } from "@statewalker/webrun-files-node";
 
-async function _writeBytes(files: FilesApi, path: string, data: Uint8Array): Promise<void> {
-  await files.write(path, [data]);
-}
-
 const DEFAULT_SYSTEM_FOLDER = ".settings";
 
 function printUsage(): void {
@@ -91,7 +87,7 @@ function createFilePersistence(files: FilesApi, basePath: string): IndexerPersis
         for await (const entry of files.list(basePath)) {
           if (entry.name?.endsWith(".bin")) {
             const safe = entry.name.slice(0, -4);
-            const name = safe.replace(/_(\d+)_/g, (_, code) =>
+            const name = safe.replace(/_(\d+)_/g, (_: string, code: string) =>
               String.fromCharCode(Number.parseInt(code, 10)),
             );
             const path = `${basePath}/${entry.name}`;

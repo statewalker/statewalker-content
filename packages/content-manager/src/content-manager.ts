@@ -30,7 +30,6 @@ import type {
 
 const DEFAULT_CHUNK_OPTIONS: ChunkOptions = {
   targetChars: 1500,
-  minChars: 200,
 };
 
 async function getOrCreateStore(registry: ScanRegistry, name: string): Promise<ScanStore> {

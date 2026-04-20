@@ -3,7 +3,10 @@ import { existsSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-const FIXTURES_DIR = resolve(import.meta.dirname, "../../indexer-tests/src/fixtures/documents");
+const FIXTURES_DIR = resolve(
+  import.meta.dirname,
+  "../../../../statewalker-indexer/packages/indexer-tests/src/fixtures/documents",
+);
 const INDEX_DIR = resolve(FIXTURES_DIR, ".content-index");
 const CLI = resolve(import.meta.dirname, "../src/cli.ts");
 
