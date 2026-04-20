@@ -34,9 +34,9 @@
   "dependencies": {
     "@statewalker/content-blocks": "workspace:*",
     "@statewalker/content-extractors": "workspace:*",
-    "@statewalker/indexer-api": "^0.1.0",
-    "@statewalker/indexer-chunker": "^0.1.0",
-    "@repo/streams": "workspace:*",
+    "@statewalker/indexer-api": "catalog:",
+    "@statewalker/indexer-chunker": "catalog:",
+    "@repo/streams": "catalog:",
     "@statewalker/webrun-files": "catalog:"
   },
   "devDependencies": {

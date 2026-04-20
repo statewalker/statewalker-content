@@ -34,13 +34,13 @@
   "dependencies": {
     "@statewalker/content-extractors": "workspace:*",
     "@statewalker/content-scanner": "workspace:*",
-    "@statewalker/indexer-api": "^0.1.0",
-    "@statewalker/indexer-chunker": "^0.1.0",
+    "@statewalker/indexer-api": "catalog:",
+    "@statewalker/indexer-chunker": "catalog:",
     "@statewalker/webrun-files": "catalog:"
   },
   "devDependencies": {
-    "@statewalker/indexer-mem-flexsearch": "^0.1.0",
-    "@statewalker/webrun-files-mem": "^0.1.0",
+    "@statewalker/indexer-mem-flexsearch": "catalog:",
+    "@statewalker/webrun-files-mem": "catalog:",
     "rimraf": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",

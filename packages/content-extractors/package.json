@@ -35,12 +35,12 @@
   },
   "dependencies": {
     "@statewalker/content-blocks": "workspace:*",
-    "exceljs": "^4.4.0",
-    "mammoth": "^1.8.0",
+    "exceljs": "catalog:",
+    "mammoth": "catalog:",
     "markdown-it": "catalog:",
-    "unpdf": "^1.4.0",
+    "unpdf": "catalog:",
     "turndown": "catalog:",
-    "@joplin/turndown-plugin-gfm": "^1.0.56"
+    "@joplin/turndown-plugin-gfm": "catalog:"
   },
   "devDependencies": {
     "@types/markdown-it": "catalog:",

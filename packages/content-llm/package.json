@@ -38,16 +38,16 @@
   },
   "dependencies": {
     "@statewalker/content-blocks": "workspace:*",
-    "@ai-sdk/anthropic": "^3.0.68",
-    "@ai-sdk/google": "^3.0.61",
-    "@ai-sdk/mcp": "^1.0.25",
-    "@ai-sdk/openai": "^3.0.52",
-    "@ai-sdk/provider": "^3.0.8",
-    "@statewalker/ai-provider": "^0.1.0",
-    "@ai-sdk/provider-utils": "^4.0.19",
-    "@modelcontextprotocol/sdk": "^1.27.1",
-    "ai": "^6.0.116",
-    "zod": "^3.24.4"
+    "@ai-sdk/anthropic": "catalog:",
+    "@ai-sdk/google": "catalog:",
+    "@ai-sdk/mcp": "catalog:",
+    "@ai-sdk/openai": "catalog:",
+    "@ai-sdk/provider": "catalog:",
+    "@statewalker/ai-provider": "catalog:",
+    "@ai-sdk/provider-utils": "catalog:",
+    "@modelcontextprotocol/sdk": "catalog:",
+    "ai": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "rimraf": "catalog:",

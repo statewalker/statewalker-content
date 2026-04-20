@@ -34,15 +34,15 @@
     "@statewalker/content-extractors": "workspace:*",
     "@statewalker/content-manager": "workspace:*",
     "@statewalker/content-scanner": "workspace:*",
-    "@statewalker/indexer-api": "^0.1.0",
-    "@statewalker/indexer-mem-flexsearch": "^0.1.0",
+    "@statewalker/indexer-api": "catalog:",
+    "@statewalker/indexer-mem-flexsearch": "catalog:",
     "@statewalker/webrun-files": "catalog:",
-    "@statewalker/webrun-files-node": "^0.7.0"
+    "@statewalker/webrun-files-node": "catalog:"
   },
   "devDependencies": {
     "rimraf": "catalog:",
     "tsdown": "catalog:",
-    "tsx": "^4.19.4",
+    "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
