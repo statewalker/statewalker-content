@@ -1,4 +1,5 @@
-import { collect, decodeMsgpack, encodeFloat32Arrays } from "@repo/streams";
+import { decodeMsgpack, encodeFloat32Arrays } from "@statewalker/webrun-msgpack";
+import { collect } from "@statewalker/webrun-streams";
 import type { ChunkData } from "./content-splitter-scanner.js";
 import type { ScanStore, Update } from "./scan-store.js";
 import type { ScannerOptions } from "./scanner.js";

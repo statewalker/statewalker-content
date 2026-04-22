@@ -1,4 +1,4 @@
-import { encodeFloat32Arrays, encodeMsgpack } from "@repo/streams";
+import { encodeFloat32Arrays, encodeMsgpack } from "@statewalker/webrun-msgpack";
 import type { Update } from "../src/scan-store.js";
 import type { UpdateSource } from "../src/scanner.js";
 

@@ -1,6 +1,7 @@
-import { collectString, decodeText, encodeMsgpack } from "@repo/streams";
 import type { ChunkOptions } from "@statewalker/indexer-chunker";
 import { chunkMarkdown } from "@statewalker/indexer-chunker";
+import { encodeMsgpack } from "@statewalker/webrun-msgpack";
+import { collectString, decodeText } from "@statewalker/webrun-streams";
 import type { ScanStore, Update } from "./scan-store.js";
 import type { ScannerOptions } from "./scanner.js";
 import { Scanner } from "./scanner.js";
