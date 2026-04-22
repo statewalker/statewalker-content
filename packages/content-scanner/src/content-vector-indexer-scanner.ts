@@ -1,5 +1,6 @@
-import { collect, decodeFloat32Arrays } from "@repo/streams";
 import type { DocumentPath, Index, IndexedBlock } from "@statewalker/indexer-api";
+import { decodeFloat32Arrays } from "@statewalker/webrun-msgpack";
+import { collect } from "@statewalker/webrun-streams";
 import type { ScanStore, Update } from "./scan-store.js";
 import type { ScannerOptions } from "./scanner.js";
 import { Scanner } from "./scanner.js";

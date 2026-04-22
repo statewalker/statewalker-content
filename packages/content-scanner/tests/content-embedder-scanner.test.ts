@@ -1,5 +1,6 @@
-import { collect as collectStream, decodeFloat32Arrays } from "@repo/streams";
 import { MemFilesApi } from "@statewalker/webrun-files-mem";
+import { decodeFloat32Arrays } from "@statewalker/webrun-msgpack";
+import { collect as collectStream } from "@statewalker/webrun-streams";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ContentEmbedderScanner } from "../src/content-embedder-scanner.js";
 import { FilesScanRegistry } from "../src/files-scan-registry.js";

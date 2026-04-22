@@ -12,7 +12,6 @@ catalog:
   "@biomejs/biome": ^2.4.12
   "@joplin/turndown-plugin-gfm": ^1.0.64
   "@modelcontextprotocol/sdk": ^1.29.0
-  "@repo/streams": ^0.0.0
   "@statewalker/ai-provider": ^0.1.0
   "@statewalker/ids": ^0.1.0
   "@statewalker/indexer-api": ^0.1.0

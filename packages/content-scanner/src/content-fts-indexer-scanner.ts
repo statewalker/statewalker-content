@@ -1,5 +1,6 @@
-import { collect, decodeMsgpack } from "@repo/streams";
 import type { DocumentPath, Index, IndexedBlock } from "@statewalker/indexer-api";
+import { decodeMsgpack } from "@statewalker/webrun-msgpack";
+import { collect } from "@statewalker/webrun-streams";
 import type { ChunkData } from "./content-splitter-scanner.js";
 import type { ScanStore, Update } from "./scan-store.js";
 import type { ScannerOptions } from "./scanner.js";

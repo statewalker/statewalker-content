@@ -1,5 +1,6 @@
-import { collect as collectStream, decodeMsgpack } from "@repo/streams";
 import { MemFilesApi } from "@statewalker/webrun-files-mem";
+import { decodeMsgpack } from "@statewalker/webrun-msgpack";
+import { collect as collectStream } from "@statewalker/webrun-streams";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ContentSplitterScanner } from "../src/content-splitter-scanner.js";
 import { FilesScanRegistry } from "../src/files-scan-registry.js";

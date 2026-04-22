@@ -36,8 +36,9 @@
     "@statewalker/content-extractors": "workspace:*",
     "@statewalker/indexer-api": "catalog:",
     "@statewalker/indexer-chunker": "catalog:",
-    "@repo/streams": "catalog:",
-    "@statewalker/webrun-files": "catalog:"
+    "@statewalker/webrun-files": "catalog:",
+    "@statewalker/webrun-msgpack": "workspace:*",
+    "@statewalker/webrun-streams": "workspace:*"
   },
   "devDependencies": {
     "@statewalker/webrun-files-mem": "catalog:",
