@@ -18,7 +18,8 @@ import type { Block, DocumentBlock } from "@statewalker/content-blocks";
 
 - `Block`, `DocumentBlock`, `SectionBlock`, `ParagraphBlock`, `TableBlock`, … — block types.
 - `./parser` sub-export — convert markdown/HTML into blocks.
-- `./ids` sub-export — stable block ID generation (via `@statewalker/ids`).
+
+For stable block ID generation use `@statewalker/shared-ids` directly.
 
 ## Related
 

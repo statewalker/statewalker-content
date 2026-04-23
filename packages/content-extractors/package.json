@@ -35,6 +35,7 @@
   },
   "dependencies": {
     "@statewalker/content-blocks": "workspace:*",
+    "@statewalker/shared-ids": "catalog:",
     "exceljs": "catalog:",
     "mammoth": "catalog:",
     "markdown-it": "catalog:",

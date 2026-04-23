@@ -1,4 +1,4 @@
-import { SnowflakeId } from "@statewalker/content-blocks/ids";
+import { SnowflakeId } from "@statewalker/shared-ids";
 import type { ScanEventType, ScanMessage, ScanMessageProps } from "./types.js";
 
 const snowflake = new SnowflakeId();
