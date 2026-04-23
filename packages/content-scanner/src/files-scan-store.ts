@@ -1,4 +1,4 @@
-import { sha1Uuid } from "@statewalker/content-blocks/ids";
+import { sha1Uuid } from "@statewalker/shared-ids";
 import type { FilesApi } from "@statewalker/webrun-files";
 import { readText, writeText } from "@statewalker/webrun-files";
 import type { ListParams, ScanStore, Stamp, Update } from "./scan-store.js";

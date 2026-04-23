@@ -1,6 +1,6 @@
 import type { ContentBlock } from "@statewalker/content-blocks";
-import { SnowflakeId } from "@statewalker/content-blocks/ids";
 import { buildBlockTree } from "@statewalker/content-blocks/parser";
+import { SnowflakeId } from "@statewalker/shared-ids";
 import type { ExtractorRegistry } from "./extractor-registry.js";
 import type {
   ExtractionEventType,
