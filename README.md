@@ -1,6 +1,6 @@
 # statewalker-content
 
-Content pipeline: blocks, extractors, scanners, managers, LLM adapters, plus the content-cli.
+Content pipeline: blocks, extractors, scanners, managers, plus the content-cli.
 
 ## Packages
 
@@ -12,7 +12,6 @@ Content pipeline: blocks, extractors, scanners, managers, LLM adapters, plus the
 | [@statewalker/content-extractors](packages/content-extractors) | PDF/DOCX/XLSX/Markdown/HTML extractors. |
 | [@statewalker/content-scanner](packages/content-scanner) | Scans a file tree and streams blocks into indexers. |
 | [@statewalker/content-manager](packages/content-manager) | High-level scan + index orchestration. |
-| [@statewalker/content-llm](packages/content-llm) | LLM adapters speaking content-blocks. |
 
 ## Apps
 
