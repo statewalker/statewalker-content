@@ -2,8 +2,7 @@
 
 import { resolve } from "node:path";
 import { createDefaultRegistry } from "@statewalker/content-extractors/extractors";
-import { createContentManager } from "@statewalker/content-manager";
-import { FilesScanRegistry } from "@statewalker/content-scanner";
+import { createContentManager } from "@statewalker/content-pipeline";
 import type { IndexerPersistence, PersistenceEntry } from "@statewalker/indexer-api";
 import { createFlexSearchIndexer } from "@statewalker/indexer-mem-flexsearch";
 import type { FilesApi } from "@statewalker/webrun-files";
@@ -112,18 +111,17 @@ async function main() {
   const rootDir = resolve(rootPath);
   const files = new NodeFilesApi({ rootDir });
   const indexDir = `/${systemFolder}/indexer`;
-  const scanDir = `/${systemFolder}/scan`;
+  const statePrefix = `/${systemFolder}/content`;
 
   const persistence = createFilePersistence(files, indexDir);
   const indexer = createFlexSearchIndexer({ persistence });
-  const registry = new FilesScanRegistry({ files, prefix: scanDir });
   const extractors = createDefaultRegistry();
 
   const manager = createContentManager({
-    registry,
     indexer,
     files,
     extractors,
+    statePrefix,
     root: "/",
     filter: (path: string) => !path.startsWith(`/${systemFolder}/`),
   });

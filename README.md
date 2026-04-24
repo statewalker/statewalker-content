@@ -10,8 +10,7 @@ Content pipeline: blocks, extractors, scanners, managers, plus the content-cli.
 | --- | --- |
 | [@statewalker/content-blocks](packages/content-blocks) | Block types shared across the content pipeline. |
 | [@statewalker/content-extractors](packages/content-extractors) | PDF/DOCX/XLSX/Markdown/HTML extractors. |
-| [@statewalker/content-scanner](packages/content-scanner) | Scans a file tree and streams blocks into indexers. |
-| [@statewalker/content-manager](packages/content-manager) | High-level scan + index orchestration. |
+| [@statewalker/content-pipeline](packages/content-pipeline) | Layered trackers that cascade file-system changes through extract, split, embed, and index stages. |
 
 ## Apps
 

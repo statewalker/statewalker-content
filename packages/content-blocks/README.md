@@ -23,4 +23,4 @@ For stable block ID generation use `@statewalker/shared-ids` directly.
 
 ## Related
 
-- `@statewalker/content-extractors`, `@statewalker/content-scanner`, `@statewalker/content-manager`.
+- `@statewalker/content-extractors`, `@statewalker/content-pipeline`.
