@@ -1,0 +1,53 @@
+{
+  "name": "@statewalker/uri-graph",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Persistent URI dependency graph kernel: workers as async generators, single-writer orchestrator, two interchangeable repository backends (in-memory+JSON snapshot, SQL).",
+  "homepage": "https://github.com/statewalker/statewalker-content",
+  "author": {
+    "name": "Mikhail Kotelnikov",
+    "email": "mikhail.kotelnikov@gmail.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statewalker/statewalker-content.git"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./node": "./src/node.ts",
+    "./browser": "./src/browser.ts"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist",
+    "lint": "biome check --write .",
+    "format": "biome format --write ."
+  },
+  "dependencies": {
+    "@statewalker/db-api": "workspace:*",
+    "@statewalker/webrun-files": "catalog:"
+  },
+  "devDependencies": {
+    "@statewalker/db-turso-node": "workspace:*",
+    "@statewalker/webrun-files-mem": "catalog:",
+    "@types/node": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  }
+}
