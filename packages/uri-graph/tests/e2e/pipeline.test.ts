@@ -1,19 +1,40 @@
 import { newNodeTursoDb } from "@statewalker/db-turso-node";
 import { describe, expect, it } from "vitest";
-import { Engine, MemoryStore, SqlStore, type Store, type WorkerFn } from "../../src/index.js";
+import {
+  Engine,
+  MemoryProcessorRegistry,
+  MemoryResourceStore,
+  type ProcessorRegistry,
+  type ResourceProcessorFn,
+  type ResourceStore,
+  SqlProcessorRegistry,
+  SqlResourceStore,
+} from "../../src/index.js";
 
-type StoreFactory = () => Promise<{ store: Store; close: () => Promise<void> }>;
+type BackendFactory = () => Promise<{
+  registry: ProcessorRegistry;
+  store: ResourceStore;
+  close: () => Promise<void>;
+}>;
 
-const factories: Array<{ name: string; make: StoreFactory }> = [
+const factories: Array<{ name: string; make: BackendFactory }> = [
   {
-    name: "MemoryStore",
-    make: async () => ({ store: new MemoryStore(), close: async () => {} }),
+    name: "Memory",
+    make: async () => ({
+      registry: new MemoryProcessorRegistry(),
+      store: new MemoryResourceStore(),
+      close: async () => {},
+    }),
   },
   {
-    name: "SqlStore",
+    name: "Sql",
     make: async () => {
       const db = await newNodeTursoDb();
-      return { store: new SqlStore(db), close: async () => db.close() };
+      return {
+        registry: new SqlProcessorRegistry(db),
+        store: new SqlResourceStore(db),
+        close: async () => db.close(),
+      };
     },
   },
 ];
@@ -27,11 +48,11 @@ async function collect<T>(it: AsyncIterable<T>): Promise<T[]> {
 for (const { name, make } of factories) {
   describe(`Pipeline e2e — ${name}`, () => {
     it("scanner → extractor (md only) → indexer", async () => {
-      const { store, close } = await make();
+      const { registry, store, close } = await make();
       try {
-        const engine = new Engine(store);
+        const engine = new Engine({ registry, store });
 
-        const scanner: WorkerFn = async function* (input, ctx) {
+        const scanner: ResourceProcessorFn = async function* (input, ctx) {
           for await (const _tick of input) {
             const stamp = await ctx.newStamp();
             yield { uri: "file://a.md", stamp, status: "added" };
@@ -40,7 +61,7 @@ for (const { name, make } of factories) {
           }
         };
 
-        const extractor: WorkerFn = async function* (input, ctx) {
+        const extractor: ResourceProcessorFn = async function* (input, ctx) {
           for await (const r of input) {
             if (!r.uri.endsWith(".md")) continue;
             const stamp = await ctx.newStamp();
@@ -48,7 +69,7 @@ for (const { name, make } of factories) {
           }
         };
 
-        const indexer: WorkerFn = async function* (input, ctx) {
+        const indexer: ResourceProcessorFn = async function* (input, ctx) {
           for await (const r of input) {
             const stamp = await ctx.newStamp();
             yield { uri: `db://${r.uri.slice("text://".length)}`, stamp, status: "added" };
@@ -81,17 +102,21 @@ for (const { name, make } of factories) {
     });
 
     it("invalidate triggers downstream re-execution", async () => {
-      const { store, close } = await make();
+      const { registry, store, close } = await make();
       try {
-        const engine = new Engine(store);
+        const engine = new Engine({ registry, store });
 
         const stamp1 = await store.newStamp();
         await store.put({ uri: "file://x", stamp: stamp1, status: "added" });
 
-        const echo: WorkerFn = async function* (input, ctx) {
+        const echo: ResourceProcessorFn = async function* (input, ctx) {
           for await (const r of input) {
             const stamp = await ctx.newStamp();
-            yield { uri: `text://${r.uri.slice("file://".length)}`, stamp, status: r.status };
+            yield {
+              uri: `text://${r.uri.slice("file://".length)}`,
+              stamp,
+              status: r.status,
+            };
           }
         };
 

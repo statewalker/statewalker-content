@@ -1,7 +1,7 @@
-import { MemoryStore } from "../../src/store/memory.js";
-import { defineStoreContract } from "./contract.js";
+import { MemoryResourceStore } from "../../src/index.js";
+import { defineResourceStoreContract } from "./contract.js";
 
-defineStoreContract("MemoryStore", async () => {
-  const store = new MemoryStore();
+defineResourceStoreContract("MemoryResourceStore", async () => {
+  const store = new MemoryResourceStore();
   return { store, close: async () => {} };
 });

@@ -1,28 +1,28 @@
-import type { Worker } from "./types.js";
+import type { ResourceProcessor } from "./types.js";
 
-export function topoLayers(workers: Worker[]): Worker[][] {
+export function topoLayers(processors: ResourceProcessor[]): ResourceProcessor[][] {
   const upstreamsOf = new Map<string, Set<string>>();
-  for (const w of workers) {
+  for (const p of processors) {
     const upstreams = new Set<string>();
-    if (w.selects !== "") {
-      for (const u of workers) {
-        if (u.name === w.name) continue;
+    if (p.selects !== "") {
+      for (const u of processors) {
+        if (u.name === p.name) continue;
         if (u.emits === "") continue;
-        if (u.emits.startsWith(w.selects) || w.selects.startsWith(u.emits)) {
+        if (u.emits.startsWith(p.selects) || p.selects.startsWith(u.emits)) {
           upstreams.add(u.name);
         }
       }
     }
-    upstreamsOf.set(w.name, upstreams);
+    upstreamsOf.set(p.name, upstreams);
   }
 
-  const layers: Worker[][] = [];
+  const layers: ResourceProcessor[][] = [];
   const placed = new Set<string>();
-  while (placed.size < workers.length) {
-    const layer: Worker[] = [];
-    for (const w of workers) {
-      if (placed.has(w.name)) continue;
-      const upstreams = upstreamsOf.get(w.name);
+  while (placed.size < processors.length) {
+    const layer: ResourceProcessor[] = [];
+    for (const p of processors) {
+      if (placed.has(p.name)) continue;
+      const upstreams = upstreamsOf.get(p.name);
       if (!upstreams) continue;
       let ready = true;
       for (const u of upstreams) {
@@ -31,14 +31,14 @@ export function topoLayers(workers: Worker[]): Worker[][] {
           break;
         }
       }
-      if (ready) layer.push(w);
+      if (ready) layer.push(p);
     }
     if (layer.length === 0) {
-      const remaining = workers.filter((w) => !placed.has(w.name)).map((w) => w.name);
-      throw new Error(`cycle detected among workers: ${remaining.join(", ")}`);
+      const remaining = processors.filter((p) => !placed.has(p.name)).map((p) => p.name);
+      throw new Error(`cycle detected among processors: ${remaining.join(", ")}`);
     }
     layer.sort((a, b) => a.name.localeCompare(b.name));
-    for (const w of layer) placed.add(w.name);
+    for (const p of layer) placed.add(p.name);
     layers.push(layer);
   }
   return layers;

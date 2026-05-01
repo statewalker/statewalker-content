@@ -1,11 +1,12 @@
 import type { Db } from "@statewalker/db-api";
-import type { Resource, Status, Worker } from "../types.js";
 import type {
   ListOptions,
   PurgeCompletionsOptions,
   PurgeResourcesOptions,
-  Store,
-} from "./store.js";
+  Resource,
+  ResourceStore,
+  Status,
+} from "../types.js";
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS stamp_seq (
@@ -23,19 +24,13 @@ CREATE TABLE IF NOT EXISTS resources (
 );
 CREATE INDEX IF NOT EXISTS resources_stamp ON resources(stamp);
 
-CREATE TABLE IF NOT EXISTS workers (
-  name    TEXT PRIMARY KEY,
-  selects TEXT NOT NULL,
-  emits   TEXT NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS completions (
-  worker      TEXT    NOT NULL,
+  processor   TEXT    NOT NULL,
   stamp       INTEGER NOT NULL,
   finished_at INTEGER NOT NULL,
-  PRIMARY KEY (worker, stamp)
+  PRIMARY KEY (processor, stamp)
 );
-CREATE INDEX IF NOT EXISTS completions_worker_stamp ON completions(worker, stamp DESC);
+CREATE INDEX IF NOT EXISTS completions_processor_stamp ON completions(processor, stamp DESC);
 `;
 
 type ResourceRow = {
@@ -43,12 +38,6 @@ type ResourceRow = {
   stamp: number;
   status: string;
   meta: string | null;
-};
-
-type WorkerRow = {
-  name: string;
-  selects: string;
-  emits: string;
 };
 
 function rowToResource(row: ResourceRow): Resource {
@@ -61,7 +50,7 @@ function rowToResource(row: ResourceRow): Resource {
   return r;
 }
 
-export class SqlStore implements Store {
+export class SqlResourceStore implements ResourceStore {
   private initialized = false;
 
   constructor(private db: Db) {}
@@ -126,54 +115,21 @@ export class SqlStore implements Store {
     for (const row of rows) yield rowToResource(row);
   }
 
-  async saveWorker(worker: Worker): Promise<void> {
+  async markCompleted(processor: string, stamp: number): Promise<void> {
     await this.ensureInit();
     await this.db.query(
-      `INSERT INTO workers (name, selects, emits) VALUES (?, ?, ?)
-       ON CONFLICT(name) DO UPDATE SET selects = excluded.selects, emits = excluded.emits`,
-      [worker.name, worker.selects, worker.emits],
-    );
-  }
-
-  async deleteWorker(name: string): Promise<void> {
-    await this.ensureInit();
-    await this.db.query("DELETE FROM workers WHERE name = ?", [name]);
-    await this.db.query("DELETE FROM completions WHERE worker = ?", [name]);
-  }
-
-  async getWorker(name: string): Promise<Worker | undefined> {
-    await this.ensureInit();
-    const rows = await this.db.query<WorkerRow>(
-      "SELECT name, selects, emits FROM workers WHERE name = ?",
-      [name],
-    );
-    const row = rows[0];
-    return row ? { name: row.name, selects: row.selects, emits: row.emits } : undefined;
-  }
-
-  async *listWorkers(): AsyncIterable<Worker> {
-    await this.ensureInit();
-    const rows = await this.db.query<WorkerRow>(
-      "SELECT name, selects, emits FROM workers ORDER BY name ASC",
-    );
-    for (const row of rows) yield { name: row.name, selects: row.selects, emits: row.emits };
-  }
-
-  async markCompleted(worker: string, stamp: number): Promise<void> {
-    await this.ensureInit();
-    await this.db.query(
-      "INSERT OR REPLACE INTO completions (worker, stamp, finished_at) VALUES (?, ?, ?)",
-      [worker, stamp, Date.now()],
+      "INSERT OR REPLACE INTO completions (processor, stamp, finished_at) VALUES (?, ?, ?)",
+      [processor, stamp, Date.now()],
     );
   }
 
   async allWatermarks(): Promise<Map<string, number>> {
     await this.ensureInit();
-    const rows = await this.db.query<{ worker: string; stamp: number }>(
-      "SELECT worker, MAX(stamp) AS stamp FROM completions GROUP BY worker",
+    const rows = await this.db.query<{ processor: string; stamp: number }>(
+      "SELECT processor, MAX(stamp) AS stamp FROM completions GROUP BY processor",
     );
     const result = new Map<string, number>();
-    for (const row of rows) result.set(row.worker, row.stamp);
+    for (const row of rows) result.set(row.processor, row.stamp);
     return result;
   }
 
@@ -207,14 +163,14 @@ export class SqlStore implements Store {
 
   async purgeCompletions(options?: PurgeCompletionsOptions): Promise<void> {
     await this.ensureInit();
-    const keep = options?.keepLatestPerWorker;
+    const keep = options?.keepLatestPerProcessor;
     if (keep === undefined || keep < 1) return;
     await this.db.query(
       `DELETE FROM completions
        WHERE rowid NOT IN (
          SELECT rowid FROM (
            SELECT rowid,
-             ROW_NUMBER() OVER (PARTITION BY worker ORDER BY stamp DESC) AS rn
+             ROW_NUMBER() OVER (PARTITION BY processor ORDER BY stamp DESC) AS rn
            FROM completions
          ) WHERE rn <= ?
        )`,
