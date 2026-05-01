@@ -1,9 +1,9 @@
 {
   "name": "@statewalker/uri-graph",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": false,
   "type": "module",
-  "description": "Persistent URI dependency graph kernel: workers as async generators, single-writer orchestrator, two interchangeable repository backends (in-memory+JSON snapshot, SQL).",
+  "description": "Minimal persistent URI dependency graph: workers as async generators, stamp watermarks, fixpoint stabilizer over an in-memory or SQL store.",
   "homepage": "https://github.com/statewalker/statewalker-content",
   "author": {
     "name": "Mikhail Kotelnikov",
@@ -15,9 +15,7 @@
     "url": "git+ssh://git@github.com/statewalker/statewalker-content.git"
   },
   "exports": {
-    ".": "./src/index.ts",
-    "./node": "./src/node.ts",
-    "./browser": "./src/browser.ts"
+    ".": "./src/index.ts"
   },
   "files": [
     "dist",
@@ -34,12 +32,10 @@
     "format": "biome format --write ."
   },
   "dependencies": {
-    "@statewalker/db-api": "workspace:*",
-    "@statewalker/webrun-files": "catalog:"
+    "@statewalker/db-api": "workspace:*"
   },
   "devDependencies": {
     "@statewalker/db-turso-node": "workspace:*",
-    "@statewalker/webrun-files-mem": "catalog:",
     "@types/node": "catalog:",
     "rimraf": "catalog:",
     "tsdown": "catalog:",
