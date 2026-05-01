@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { Resource } from "../../src/index.js";
-import type { Store } from "../../src/store/store.js";
+import type { Resource, ResourceStore } from "../../src/index.js";
 
-export type StoreFactory = () => Promise<{ store: Store; close: () => Promise<void> }>;
+export type ResourceStoreFactory = () => Promise<{
+  store: ResourceStore;
+  close: () => Promise<void>;
+}>;
 
 async function collect<T>(it: AsyncIterable<T>): Promise<T[]> {
   const out: T[] = [];
@@ -10,8 +12,8 @@ async function collect<T>(it: AsyncIterable<T>): Promise<T[]> {
   return out;
 }
 
-export function defineStoreContract(name: string, factory: StoreFactory): void {
-  describe(`${name} — Store contract`, () => {
+export function defineResourceStoreContract(name: string, factory: ResourceStoreFactory): void {
+  describe(`${name} — ResourceStore contract`, () => {
     it("mints monotonically increasing stamps", async () => {
       const { store, close } = await factory();
       try {
@@ -84,38 +86,7 @@ export function defineStoreContract(name: string, factory: StoreFactory): void {
       }
     });
 
-    it("saves, gets, lists, deletes workers", async () => {
-      const { store, close } = await factory();
-      try {
-        await store.saveWorker({ name: "scanner", selects: "", emits: "file://" });
-        await store.saveWorker({ name: "extractor", selects: "file://", emits: "text://" });
-
-        expect((await store.getWorker("scanner"))?.emits).toBe("file://");
-
-        const all = await collect(store.listWorkers());
-        expect(all.map((w) => w.name).sort()).toEqual(["extractor", "scanner"]);
-
-        await store.deleteWorker("scanner");
-        expect(await store.getWorker("scanner")).toBeUndefined();
-      } finally {
-        await close();
-      }
-    });
-
-    it("saveWorker upserts on conflict", async () => {
-      const { store, close } = await factory();
-      try {
-        await store.saveWorker({ name: "w", selects: "a://", emits: "b://" });
-        await store.saveWorker({ name: "w", selects: "x://", emits: "y://" });
-        const w = await store.getWorker("w");
-        expect(w?.selects).toBe("x://");
-        expect(w?.emits).toBe("y://");
-      } finally {
-        await close();
-      }
-    });
-
-    it("allWatermarks returns max stamp per worker", async () => {
+    it("allWatermarks returns max stamp per processor", async () => {
       const { store, close } = await factory();
       try {
         await store.markCompleted("a", 5);
@@ -185,13 +156,13 @@ export function defineStoreContract(name: string, factory: StoreFactory): void {
       }
     });
 
-    it("purgeCompletions({ keepLatestPerWorker }) keeps only the N newest", async () => {
+    it("purgeCompletions({ keepLatestPerProcessor }) keeps only the N newest", async () => {
       const { store, close } = await factory();
       try {
-        for (let s = 1; s <= 5; s++) await store.markCompleted("w", s);
-        await store.purgeCompletions({ keepLatestPerWorker: 2 });
+        for (let s = 1; s <= 5; s++) await store.markCompleted("p", s);
+        await store.purgeCompletions({ keepLatestPerProcessor: 2 });
         const wm = await store.allWatermarks();
-        expect(wm.get("w")).toBe(5);
+        expect(wm.get("p")).toBe(5);
       } finally {
         await close();
       }

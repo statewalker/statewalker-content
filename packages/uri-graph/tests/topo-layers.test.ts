@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { topoLayers } from "../src/index.js";
 
 describe("topoLayers", () => {
-  it("groups independent workers into the same layer", async () => {
+  it("groups independent processors into the same layer", async () => {
     const layers = topoLayers([
       { name: "a", selects: "x://", emits: "y://" },
       { name: "b", selects: "p://", emits: "q://" },
     ]);
     expect(layers.length).toBe(1);
-    expect(layers[0]?.map((w) => w.name).sort()).toEqual(["a", "b"]);
+    expect(layers[0]?.map((p) => p.name).sort()).toEqual(["a", "b"]);
   });
 
   it("orders dependents after their producers", async () => {
@@ -17,7 +17,7 @@ describe("topoLayers", () => {
       { name: "extractor", selects: "file://", emits: "text://" },
       { name: "indexer", selects: "text://", emits: "db://" },
     ]);
-    expect(layers.map((l) => l.map((w) => w.name))).toEqual([
+    expect(layers.map((l) => l.map((p) => p.name))).toEqual([
       ["scanner"],
       ["extractor"],
       ["indexer"],
@@ -30,8 +30,8 @@ describe("topoLayers", () => {
       { name: "b", selects: "", emits: "beta://" },
       { name: "join", selects: "alpha://", emits: "gamma://" },
     ]);
-    expect(layers[0]?.map((w) => w.name).sort()).toEqual(["a", "b"]);
-    expect(layers[1]?.map((w) => w.name)).toEqual(["join"]);
+    expect(layers[0]?.map((p) => p.name).sort()).toEqual(["a", "b"]);
+    expect(layers[1]?.map((p) => p.name)).toEqual(["join"]);
   });
 
   it("throws on cycles", async () => {

@@ -7,18 +7,54 @@ export type Resource = {
   meta?: unknown;
 };
 
-export type Worker = {
+export type ResourceProcessor = {
   name: string;
   selects: string;
   emits: string;
 };
 
-export type WorkerContext = {
+export type ResourceProcessorContext = {
   newStamp: () => Promise<number>;
   read: (uri: string) => Promise<Resource | undefined>;
 };
 
-export type WorkerFn = (
+export type ResourceProcessorFn = (
   input: AsyncIterable<Resource>,
-  ctx: WorkerContext,
+  ctx: ResourceProcessorContext,
 ) => AsyncGenerator<Resource>;
+
+export type ListOptions = {
+  prefix: string;
+  afterStamp?: number;
+};
+
+export type PurgeResourcesOptions = {
+  keepLatestPerUri?: boolean;
+};
+
+export type PurgeCompletionsOptions = {
+  keepLatestPerProcessor?: number;
+};
+
+export interface ResourceStore {
+  newStamp(): Promise<number>;
+
+  put(resource: Resource): Promise<void>;
+  get(uri: string): Promise<Resource | undefined>;
+  list(options: ListOptions): AsyncIterable<Resource>;
+
+  markCompleted(processor: string, stamp: number): Promise<void>;
+  allWatermarks(): Promise<Map<string, number>>;
+
+  invalidate(prefix: string): Promise<void>;
+
+  purgeResources(options?: PurgeResourcesOptions): Promise<void>;
+  purgeCompletions(options?: PurgeCompletionsOptions): Promise<void>;
+}
+
+export interface ProcessorRegistry {
+  saveProcessor(processor: ResourceProcessor): Promise<void>;
+  deleteProcessor(name: string): Promise<void>;
+  getProcessor(name: string): Promise<ResourceProcessor | undefined>;
+  listProcessors(): AsyncIterable<ResourceProcessor>;
+}

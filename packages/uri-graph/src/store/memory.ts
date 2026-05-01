@@ -1,16 +1,15 @@
-import type { Resource, Worker } from "../types.js";
 import type {
   ListOptions,
   PurgeCompletionsOptions,
   PurgeResourcesOptions,
-  Store,
-} from "./store.js";
+  Resource,
+  ResourceStore,
+} from "../types.js";
 
-export class MemoryStore implements Store {
+export class MemoryResourceStore implements ResourceStore {
   private nextStampValue = 1;
   private resourcesByUri = new Map<string, Resource[]>();
-  private workers = new Map<string, Worker>();
-  private completionsByWorker = new Map<string, number[]>();
+  private completionsByProcessor = new Map<string, number[]>();
 
   async newStamp(): Promise<number> {
     return this.nextStampValue++;
@@ -46,36 +45,18 @@ export class MemoryStore implements Store {
     for (const r of matches) yield r;
   }
 
-  async saveWorker(worker: Worker): Promise<void> {
-    this.workers.set(worker.name, { ...worker });
-  }
-
-  async deleteWorker(name: string): Promise<void> {
-    this.workers.delete(name);
-    this.completionsByWorker.delete(name);
-  }
-
-  async getWorker(name: string): Promise<Worker | undefined> {
-    const w = this.workers.get(name);
-    return w ? { ...w } : undefined;
-  }
-
-  async *listWorkers(): AsyncIterable<Worker> {
-    for (const w of this.workers.values()) yield { ...w };
-  }
-
-  async markCompleted(worker: string, stamp: number): Promise<void> {
-    const arr = this.completionsByWorker.get(worker);
+  async markCompleted(processor: string, stamp: number): Promise<void> {
+    const arr = this.completionsByProcessor.get(processor);
     if (arr) arr.push(stamp);
-    else this.completionsByWorker.set(worker, [stamp]);
+    else this.completionsByProcessor.set(processor, [stamp]);
   }
 
   async allWatermarks(): Promise<Map<string, number>> {
     const result = new Map<string, number>();
-    for (const [worker, stamps] of this.completionsByWorker) {
+    for (const [processor, stamps] of this.completionsByProcessor) {
       let max = 0;
       for (const s of stamps) if (s > max) max = s;
-      result.set(worker, max);
+      result.set(processor, max);
     }
     return result;
   }
@@ -101,12 +82,12 @@ export class MemoryStore implements Store {
   }
 
   async purgeCompletions(options?: PurgeCompletionsOptions): Promise<void> {
-    const keep = options?.keepLatestPerWorker;
+    const keep = options?.keepLatestPerProcessor;
     if (keep === undefined || keep < 1) return;
-    for (const [worker, stamps] of this.completionsByWorker) {
+    for (const [processor, stamps] of this.completionsByProcessor) {
       if (stamps.length > keep) {
         stamps.sort((a, b) => a - b);
-        this.completionsByWorker.set(worker, stamps.slice(stamps.length - keep));
+        this.completionsByProcessor.set(processor, stamps.slice(stamps.length - keep));
       }
     }
   }

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { Engine, MemoryStore, type Resource, type WorkerFn } from "../src/index.js";
+import {
+  Engine,
+  MemoryProcessorRegistry,
+  MemoryResourceStore,
+  type Resource,
+  type ResourceProcessorFn,
+} from "../src/index.js";
 
 async function collect<T>(it: AsyncIterable<T>): Promise<T[]> {
   const out: T[] = [];
@@ -7,34 +13,43 @@ async function collect<T>(it: AsyncIterable<T>): Promise<T[]> {
   return out;
 }
 
-describe("Engine.runWorker", () => {
-  it("runs a worker with empty input and writes no completion", async () => {
-    const store = new MemoryStore();
-    const engine = new Engine(store);
+function makeEngine(): {
+  engine: Engine;
+  store: MemoryResourceStore;
+  registry: MemoryProcessorRegistry;
+} {
+  const store = new MemoryResourceStore();
+  const registry = new MemoryProcessorRegistry();
+  const engine = new Engine({ registry, store });
+  return { engine, store, registry };
+}
 
-    const fn: WorkerFn = async function* (input, ctx) {
+describe("Engine.runProcessor", () => {
+  it("runs a processor with empty input and writes no completion", async () => {
+    const { engine, store } = makeEngine();
+
+    const fn: ResourceProcessorFn = async function* (input, ctx) {
       for await (const r of input) {
         yield { uri: r.uri, stamp: await ctx.newStamp(), status: "added" };
       }
     };
 
-    await engine.register({ name: "w", selects: "x://", emits: "y://" }, fn);
+    await engine.register({ name: "p", selects: "x://", emits: "y://" }, fn);
 
-    const out = await collect(engine.runWorker("w"));
+    const out = await collect(engine.runProcessor("p"));
     expect(out).toEqual([]);
 
     const wm = await store.allWatermarks();
-    expect(wm.get("w")).toBeUndefined();
+    expect(wm.get("p")).toBeUndefined();
   });
 
-  it("runs a worker, persists outputs, and writes a completion stamp", async () => {
-    const store = new MemoryStore();
-    const engine = new Engine(store);
+  it("runs a processor, persists outputs, writes a completion stamp greater than every output", async () => {
+    const { engine, store } = makeEngine();
 
     await store.put({ uri: "file://a", stamp: 1, status: "added" });
     await store.put({ uri: "file://b", stamp: 2, status: "added" });
 
-    const fn: WorkerFn = async function* (input, ctx) {
+    const fn: ResourceProcessorFn = async function* (input, ctx) {
       const stamp = await ctx.newStamp();
       for await (const r of input) {
         yield {
@@ -47,7 +62,7 @@ describe("Engine.runWorker", () => {
 
     await engine.register({ name: "extractor", selects: "file://", emits: "text://" }, fn);
 
-    const out: Resource[] = await collect(engine.runWorker("extractor"));
+    const out: Resource[] = await collect(engine.runProcessor("extractor"));
     expect(out.map((r) => r.uri).sort()).toEqual(["text://a", "text://b"]);
 
     const wm = await store.allWatermarks();
@@ -58,14 +73,13 @@ describe("Engine.runWorker", () => {
     for (const r of out) expect(r.stamp).toBeLessThan(completion);
   });
 
-  it("filter worker (consumes input, produces nothing) still bumps watermark", async () => {
-    const store = new MemoryStore();
-    const engine = new Engine(store);
+  it("filter processor (consumes input, produces nothing) still bumps watermark", async () => {
+    const { engine, store } = makeEngine();
 
     await store.put({ uri: "file://a.png", stamp: 1, status: "added" });
     await store.put({ uri: "file://b.png", stamp: 2, status: "added" });
 
-    const fn: WorkerFn = async function* (input, ctx) {
+    const fn: ResourceProcessorFn = async function* (input, ctx) {
       for await (const r of input) {
         if (r.uri.endsWith(".md")) {
           yield { uri: `text://${r.uri}`, stamp: await ctx.newStamp(), status: "added" };
@@ -75,7 +89,7 @@ describe("Engine.runWorker", () => {
 
     await engine.register({ name: "filter", selects: "file://", emits: "text://" }, fn);
 
-    await collect(engine.runWorker("filter"));
+    await collect(engine.runProcessor("filter"));
 
     const wm = await store.allWatermarks();
     const first = wm.get("filter");
@@ -83,41 +97,39 @@ describe("Engine.runWorker", () => {
     if (!first) return;
     expect(first).toBeGreaterThanOrEqual(2);
 
-    await collect(engine.runWorker("filter"));
+    await collect(engine.runProcessor("filter"));
 
     const wm2 = await store.allWatermarks();
     expect(wm2.get("filter")).toBe(first);
   });
 
-  it("does not advance watermark when worker generator throws", async () => {
-    const store = new MemoryStore();
-    const engine = new Engine(store);
+  it("does not advance watermark when processor generator throws", async () => {
+    const { engine, store } = makeEngine();
 
     await store.put({ uri: "file://a", stamp: 1, status: "added" });
 
-    const fn: WorkerFn = async function* (input, ctx) {
+    const fn: ResourceProcessorFn = async function* (input, ctx) {
       for await (const r of input) {
         if (r.uri) throw new Error("boom");
         yield { uri: r.uri, stamp: await ctx.newStamp(), status: "added" };
       }
     };
 
-    await engine.register({ name: "w", selects: "file://", emits: "x://" }, fn);
+    await engine.register({ name: "p", selects: "file://", emits: "x://" }, fn);
 
-    await expect(collect(engine.runWorker("w"))).rejects.toThrow("boom");
+    await expect(collect(engine.runProcessor("p"))).rejects.toThrow("boom");
 
     const wm = await store.allWatermarks();
-    expect(wm.get("w")).toBeUndefined();
+    expect(wm.get("p")).toBeUndefined();
   });
 
-  it("re-running with no new inputs is a no-op", async () => {
-    const store = new MemoryStore();
-    const engine = new Engine(store);
+  it("re-running with no new inputs is a no-op (no extra outputs)", async () => {
+    const { engine, store } = makeEngine();
 
     await store.put({ uri: "file://a", stamp: 1, status: "added" });
 
     let runs = 0;
-    const fn: WorkerFn = async function* (input, ctx) {
+    const fn: ResourceProcessorFn = async function* (input, ctx) {
       runs++;
       const stamp = await ctx.newStamp();
       for await (const r of input) {
@@ -127,10 +139,10 @@ describe("Engine.runWorker", () => {
 
     await engine.register({ name: "x", selects: "file://", emits: "text://" }, fn);
 
-    await collect(engine.runWorker("x"));
+    await collect(engine.runProcessor("x"));
     expect(runs).toBe(1);
 
-    await collect(engine.runWorker("x"));
+    await collect(engine.runProcessor("x"));
     expect(runs).toBe(2);
     const got = await collect(store.list({ prefix: "text://" }));
     expect(got.length).toBe(1);
@@ -139,10 +151,9 @@ describe("Engine.runWorker", () => {
 
 describe("Engine.stabilize", () => {
   it("cascades through a 3-stage pipeline", async () => {
-    const store = new MemoryStore();
-    const engine = new Engine(store);
+    const { engine, store } = makeEngine();
 
-    const scanner: WorkerFn = async function* (input, ctx) {
+    const scanner: ResourceProcessorFn = async function* (input, ctx) {
       for await (const _tick of input) {
         const stamp = await ctx.newStamp();
         yield { uri: "file://a", stamp, status: "added" };
@@ -150,14 +161,14 @@ describe("Engine.stabilize", () => {
       }
     };
 
-    const extractor: WorkerFn = async function* (input, ctx) {
+    const extractor: ResourceProcessorFn = async function* (input, ctx) {
       const stamp = await ctx.newStamp();
       for await (const r of input) {
         yield { uri: `text://${r.uri.slice("file://".length)}`, stamp, status: "updated" };
       }
     };
 
-    const indexer: WorkerFn = async function* (input, ctx) {
+    const indexer: ResourceProcessorFn = async function* (input, ctx) {
       const stamp = await ctx.newStamp();
       for await (const r of input) {
         yield { uri: `db://${r.uri.slice("text://".length)}`, stamp, status: "updated" };
@@ -176,11 +187,10 @@ describe("Engine.stabilize", () => {
     expect(dbRows.map((r) => r.uri).sort()).toEqual(["db://a", "db://b"]);
   });
 
-  it("stabilize converges (terminates) when no worker has new input", async () => {
-    const store = new MemoryStore();
-    const engine = new Engine(store);
+  it("converges (terminates) when no processor has new input", async () => {
+    const { engine, store } = makeEngine();
 
-    const fn: WorkerFn = async function* (input, ctx) {
+    const fn: ResourceProcessorFn = async function* (input, ctx) {
       const stamp = await ctx.newStamp();
       for await (const r of input) {
         yield { uri: `text://${r.uri}`, stamp, status: "updated" };
@@ -188,7 +198,7 @@ describe("Engine.stabilize", () => {
     };
 
     await store.put({ uri: "file://a", stamp: await store.newStamp(), status: "added" });
-    await engine.register({ name: "w", selects: "file://", emits: "text://" }, fn);
+    await engine.register({ name: "p", selects: "file://", emits: "text://" }, fn);
 
     const out1 = await collect(engine.stabilize());
     expect(out1.length).toBeGreaterThan(0);
@@ -197,11 +207,10 @@ describe("Engine.stabilize", () => {
     expect(out2).toEqual([]);
   });
 
-  it("invalidate triggers re-execution of downstream workers", async () => {
-    const store = new MemoryStore();
-    const engine = new Engine(store);
+  it("invalidate triggers re-execution of downstream processors", async () => {
+    const { engine, store } = makeEngine();
 
-    const extractor: WorkerFn = async function* (input, ctx) {
+    const extractor: ResourceProcessorFn = async function* (input, ctx) {
       const stamp = await ctx.newStamp();
       for await (const r of input) {
         if (r.status === "removed") {
@@ -225,24 +234,22 @@ describe("Engine.stabilize", () => {
 });
 
 describe("Engine.unregister", () => {
-  it("removes worker and clears completions", async () => {
-    const store = new MemoryStore();
-    const engine = new Engine(store);
+  it("removes processor from registry; resources and history stay", async () => {
+    const { engine, store, registry } = makeEngine();
 
     await store.put({ uri: "file://a", stamp: await store.newStamp(), status: "added" });
 
-    const fn: WorkerFn = async function* (input, ctx) {
+    const fn: ResourceProcessorFn = async function* (input, ctx) {
       const stamp = await ctx.newStamp();
       for await (const r of input) {
         yield { uri: `text://${r.uri}`, stamp, status: "updated" };
       }
     };
-    await engine.register({ name: "w", selects: "file://", emits: "text://" }, fn);
+    await engine.register({ name: "p", selects: "file://", emits: "text://" }, fn);
     await collect(engine.stabilize());
 
-    expect((await store.allWatermarks()).get("w")).toBeDefined();
-    await engine.unregister("w");
-    expect((await store.allWatermarks()).get("w")).toBeUndefined();
-    expect(await store.getWorker("w")).toBeUndefined();
+    expect((await store.allWatermarks()).get("p")).toBeDefined();
+    await engine.unregister("p");
+    expect(await registry.getProcessor("p")).toBeUndefined();
   });
 });
