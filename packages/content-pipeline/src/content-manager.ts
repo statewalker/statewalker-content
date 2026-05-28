@@ -1,16 +1,24 @@
 import type { ExtractorRegistry } from "@statewalker/content-extractors";
 import type {
   DocumentPath,
-  HybridSearchResult,
   Index,
   Indexer,
   EmbedFn as IndexerEmbedFn,
+  SearchResult,
 } from "@statewalker/indexer-api";
 import type { ChunkOptions } from "@statewalker/indexer-chunker";
+import type { FullTextIndex, FulltextQuery } from "@statewalker/indexer-fulltext";
+import { FULL_TEXT_TYPE, newFullTextAccess } from "@statewalker/indexer-fulltext";
+import type { VectorIndex } from "@statewalker/indexer-vector";
+import { newVectorAccess, VECTOR_TYPE } from "@statewalker/indexer-vector";
 import type { FilesApi } from "@statewalker/webrun-files";
 import type { Pipeline, PipelineStores } from "./pipeline.js";
 import { createDefaultStores, createPipeline } from "./pipeline.js";
 import type { EmbedFn } from "./transforms/embed.js";
+
+/** Standard sub-index names this manager uses on the content `Index`. */
+const FTS_SUB = "q";
+const VEC_SUB = "semantic";
 
 export type SearchHit = {
   blockId: string;
@@ -21,10 +29,14 @@ export type SearchHit = {
 
 export type ContentSearchParams = {
   queries: string[];
-  semanticQueries?: string[];
   topK?: number;
   paths?: string[];
-  weights?: { fts: number; embedding: number };
+};
+
+/** Optional vector sub-index config — supply when `embed` is enabled. */
+export type ContentVectorConfig = {
+  dimensionality: number;
+  model: string;
 };
 
 export type ContentStatus = {
@@ -50,6 +62,14 @@ export type ContentManagerOptions = {
   chunkOptions?: ChunkOptions;
   indexer: Indexer;
   embed?: EmbedFn | IndexerEmbedFn;
+  /**
+   * Vector sub-index config used when `embed` is set. Required to create the
+   * Index's `"semantic"` vector sub-index; ignored when reusing an Index that
+   * already has it.
+   */
+  vector?: ContentVectorConfig;
+  /** FTS language passed to the `"q"` sub-index on creation. Default `"en"`. */
+  ftsLanguage?: string;
   /** Optional precomputed `stores` — overrides the default wiring derived from `statePrefix`. */
   stores?: PipelineStores;
   root?: string;
@@ -69,10 +89,25 @@ export type ContentManager = {
 const DEFAULT_CHUNK_OPTIONS: ChunkOptions = { targetChars: 1500 };
 const INDEX_NAME = "content";
 
-async function getOrCreateIndex(indexer: Indexer): Promise<Index> {
+/** Resolve or create the content Index with the `"q"` FTS sub-index and (if embedding) the `"semantic"` vector sub-index. */
+async function getOrCreateIndex(
+  indexer: Indexer,
+  ftsLanguage: string,
+  vector?: ContentVectorConfig,
+): Promise<Index> {
   const existing = await indexer.getIndex(INDEX_NAME);
   if (existing) return existing;
-  return indexer.createIndex({ name: INDEX_NAME, fulltext: { language: "en" } });
+  const subIndexes: Record<string, { type: string } & Record<string, unknown>> = {
+    [FTS_SUB]: { type: FULL_TEXT_TYPE, language: ftsLanguage },
+  };
+  if (vector) {
+    subIndexes[VEC_SUB] = {
+      type: VECTOR_TYPE,
+      dimensionality: vector.dimensionality,
+      model: vector.model,
+    };
+  }
+  return indexer.createIndex({ name: INDEX_NAME, subIndexes });
 }
 
 /**
@@ -86,7 +121,13 @@ export function createContentManager(options: ContentManagerOptions): ContentMan
   let pipeline: Pipeline | null = null;
 
   async function ensureIndex(): Promise<Index> {
-    if (!index) index = await getOrCreateIndex(options.indexer);
+    if (!index) {
+      index = await getOrCreateIndex(
+        options.indexer,
+        options.ftsLanguage ?? "en",
+        embed ? options.vector : undefined,
+      );
+    }
     return index;
   }
 
@@ -102,6 +143,8 @@ export function createContentManager(options: ContentManagerOptions): ContentMan
         withEmbeddings: embed !== undefined,
         withVecIndex: embed !== undefined,
       });
+    const fts: FullTextIndex = newFullTextAccess(FTS_SUB).get(idx);
+    const vec: VectorIndex | undefined = embed ? newVectorAccess(VEC_SUB).tryGet(idx) : undefined;
     pipeline = createPipeline({
       files: options.files,
       root: options.root ?? "/",
@@ -109,8 +152,8 @@ export function createContentManager(options: ContentManagerOptions): ContentMan
       extractors: options.extractors,
       chunkOptions: options.chunkOptions ?? DEFAULT_CHUNK_OPTIONS,
       embed,
-      ftsIndex: idx,
-      vecIndex: embed ? idx : undefined,
+      ftsIndex: fts,
+      vecIndex: vec,
       stores,
       batchSize: options.batchSize,
       pauseMs: options.pauseMs,
@@ -169,21 +212,26 @@ export function createContentManager(options: ContentManagerOptions): ContentMan
 
     async search(params: ContentSearchParams): Promise<SearchHit[]> {
       const idx = await ensureIndex();
-      const results: HybridSearchResult[] = [];
-      for await (const r of idx.search({
-        queries: params.queries,
+      const ftsAccess = newFullTextAccess(FTS_SUB);
+      const subQuery: FulltextQuery = { queries: params.queries };
+      const results: SearchResult[] = [];
+      const request = {
         topK: params.topK ?? 10,
         paths: params.paths as DocumentPath[] | undefined,
-        weights: params.weights,
-      })) {
+        subQueries: { [FTS_SUB]: subQuery },
+      };
+      for await (const r of idx.search(request)) {
         results.push(r);
       }
-      return results.map((r) => ({
-        blockId: r.blockId,
-        uri: String(r.path),
-        content: r.fts?.snippet ?? "",
-        score: r.score,
-      }));
+      return results.map((r) => {
+        const ftsHit = ftsAccess.getResult(r);
+        return {
+          blockId: r.blockId,
+          uri: String(r.path),
+          content: ftsHit?.snippet ?? "",
+          score: r.score,
+        };
+      });
     },
 
     async status(): Promise<ContentStatus> {

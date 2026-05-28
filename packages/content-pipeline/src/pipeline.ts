@@ -1,6 +1,7 @@
 import type { ExtractorRegistry } from "@statewalker/content-extractors";
-import type { Index } from "@statewalker/indexer-api";
 import type { ChunkOptions } from "@statewalker/indexer-chunker";
+import type { FullTextIndex } from "@statewalker/indexer-fulltext";
+import type { VectorIndex } from "@statewalker/indexer-vector";
 import type { FilesApi } from "@statewalker/webrun-files";
 import type { ScanFilesOptions } from "./files-tracker.js";
 import { scanFiles } from "./files-tracker.js";
@@ -35,8 +36,18 @@ export type CreatePipelineOptions = {
   chunkOptions: ChunkOptions;
   /** Enables the embed tracker and (with `vecIndex`) the vec tracker. */
   embed?: EmbedFn;
-  ftsIndex?: Index;
-  vecIndex?: Index;
+  /**
+   * Full-text sub-index this pipeline writes chunks into. Obtained by the
+   * caller via `newFullTextAccess(name).get(index)`. When omitted, the fts
+   * tracker stage is skipped.
+   */
+  ftsIndex?: FullTextIndex;
+  /**
+   * Vector sub-index this pipeline writes embeddings into. Obtained by the
+   * caller via `newVectorAccess(name).get(index)`. When omitted (or when
+   * `embed` is omitted), the vec tracker stage is skipped.
+   */
+  vecIndex?: VectorIndex;
   stores: PipelineStores;
   batchSize?: number;
   pauseMs?: number;

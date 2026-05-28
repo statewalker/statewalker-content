@@ -1,5 +1,8 @@
 import { createDefaultRegistry } from "@statewalker/content-extractors/extractors";
+import type { FulltextQuery } from "@statewalker/indexer-fulltext";
+import { newFullTextAccess } from "@statewalker/indexer-fulltext";
 import { createFlexSearchIndexer } from "@statewalker/indexer-mem-flexsearch";
+import { newVectorAccess } from "@statewalker/indexer-vector";
 import { writeText } from "@statewalker/webrun-files";
 import { MemFilesApi } from "@statewalker/webrun-files-mem";
 import { describe, expect, it } from "vitest";
@@ -16,11 +19,17 @@ const waitFor = async (
   }
 };
 
+const ftAccess = newFullTextAccess("q");
+const vecAccess = newVectorAccess("semantic");
+
+const ftConfig = { type: "fulltext" as const, language: "en" };
+const vecConfig = { type: "vector" as const, dimensionality: 4, model: "fake" };
+
 describe("pipeline cascade", () => {
   it("propagates a new file through content, chunks, fts-receipt without an orchestrator", async () => {
     const files = new MemFilesApi();
     const indexer = createFlexSearchIndexer();
-    const index = await indexer.createIndex({ name: "content", fulltext: { language: "en" } });
+    const index = await indexer.createIndex({ name: "content", subIndexes: { q: ftConfig } });
     const extractors = createDefaultRegistry();
     const stores = createDefaultStores({
       files,
@@ -33,7 +42,7 @@ describe("pipeline cascade", () => {
       filter: (p) => !p.startsWith("/.state/"),
       extractors,
       chunkOptions: { targetChars: 200 },
-      ftsIndex: index,
+      ftsIndex: ftAccess.get(index),
       stores,
       pauseMs: 0,
     });
@@ -59,7 +68,7 @@ describe("pipeline cascade", () => {
   it("cascades tombstones through the pipeline and deletes docs from the FTS index", async () => {
     const files = new MemFilesApi();
     const indexer = createFlexSearchIndexer();
-    const index = await indexer.createIndex({ name: "content", fulltext: { language: "en" } });
+    const index = await indexer.createIndex({ name: "content", subIndexes: { q: ftConfig } });
     const extractors = createDefaultRegistry();
     const stores = createDefaultStores({
       files,
@@ -72,7 +81,7 @@ describe("pipeline cascade", () => {
       filter: (p) => !p.startsWith("/.state/"),
       extractors,
       chunkOptions: { targetChars: 200 },
-      ftsIndex: index,
+      ftsIndex: ftAccess.get(index),
       stores,
       pauseMs: 0,
     });
@@ -82,7 +91,10 @@ describe("pipeline cascade", () => {
     await pipeline.catchUpAll();
 
     const hitsBefore: unknown[] = [];
-    for await (const r of index.search({ queries: ["Gone"], topK: 5 })) hitsBefore.push(r);
+    const queryGone: FulltextQuery = { queries: ["Gone"] };
+    for await (const r of index.search({ topK: 5, subQueries: { q: queryGone } })) {
+      hitsBefore.push(r);
+    }
     expect(hitsBefore.length).toBeGreaterThan(0);
 
     await files.remove("/gone.md");
@@ -94,7 +106,9 @@ describe("pipeline cascade", () => {
     expect((await stores.fts?.get("/gone.md"))?.tombstone).toBe(true);
 
     const hitsAfter: unknown[] = [];
-    for await (const r of index.search({ queries: ["Gone"], topK: 5 })) hitsAfter.push(r);
+    for await (const r of index.search({ topK: 5, subQueries: { q: queryGone } })) {
+      hitsAfter.push(r);
+    }
     expect(hitsAfter).toHaveLength(0);
 
     await pipeline.close();
@@ -103,7 +117,7 @@ describe("pipeline cascade", () => {
   it("rebuild-from-scratch: resetting the first tracker's cursor reprocesses every upstream entry", async () => {
     const files = new MemFilesApi();
     const indexer = createFlexSearchIndexer();
-    const index = await indexer.createIndex({ name: "content", fulltext: { language: "en" } });
+    const index = await indexer.createIndex({ name: "content", subIndexes: { q: ftConfig } });
     const extractors = createDefaultRegistry();
     const stores = createDefaultStores({
       files,
@@ -116,7 +130,7 @@ describe("pipeline cascade", () => {
       filter: (p) => !p.startsWith("/.state/"),
       extractors,
       chunkOptions: { targetChars: 200 },
-      ftsIndex: index,
+      ftsIndex: ftAccess.get(index),
       stores,
       pauseMs: 0,
     });
@@ -148,9 +162,7 @@ describe("pipeline cascade", () => {
     const indexer = createFlexSearchIndexer();
     const index = await indexer.createIndex({
       name: "content",
-      fulltext: { language: "en" },
-      // The flexsearch impl may or may not support an embedding sub-index;
-      // vecIndex only runs if we pass it as `vecIndex` below, so we keep both pointers.
+      subIndexes: { q: ftConfig, semantic: vecConfig },
     });
     const extractors = createDefaultRegistry();
     const stores = createDefaultStores({
@@ -177,8 +189,8 @@ describe("pipeline cascade", () => {
       filter: (p) => !p.startsWith("/.state/"),
       extractors,
       chunkOptions: { targetChars: 60 },
-      ftsIndex: index,
-      vecIndex: index,
+      ftsIndex: ftAccess.get(index),
+      vecIndex: vecAccess.get(index),
       embed: fakeEmbed,
       stores,
       pauseMs: 0,
@@ -216,7 +228,7 @@ describe("pipeline cascade", () => {
     try {
       const files = new MemFilesApi();
       const indexer = createFlexSearchIndexer();
-      const index = await indexer.createIndex({ name: "content", fulltext: { language: "en" } });
+      const index = await indexer.createIndex({ name: "content", subIndexes: { q: ftConfig } });
       const extractors = createDefaultRegistry();
       const stores = createDefaultStores({
         files,
@@ -229,7 +241,7 @@ describe("pipeline cascade", () => {
         filter: (p) => !p.startsWith("/.state/"),
         extractors,
         chunkOptions: { targetChars: 200 },
-        ftsIndex: index,
+        ftsIndex: ftAccess.get(index),
         stores,
         batchSize: 2,
         pauseMs: 20,

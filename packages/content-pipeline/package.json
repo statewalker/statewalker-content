@@ -36,6 +36,8 @@
     "@statewalker/content-extractors": "workspace:*",
     "@statewalker/indexer-api": "catalog:",
     "@statewalker/indexer-chunker": "catalog:",
+    "@statewalker/indexer-fulltext": "catalog:",
+    "@statewalker/indexer-vector": "catalog:",
     "@statewalker/shared-ids": "catalog:",
     "@statewalker/webrun-files": "catalog:",
     "@statewalker/webrun-msgpack": "workspace:*"
