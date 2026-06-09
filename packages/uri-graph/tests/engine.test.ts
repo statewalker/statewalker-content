@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  Engine,
-  MemoryProcessorRegistry,
-  MemoryResourceStore,
-  type Resource,
-  type ResourceProcessorFn,
+  Engine, MemoryProcessorRegistry, MemoryResourceStore, type Resource, type ResourceProcessorFn
 } from "../src/index.js";
 
 async function collect<T>(it: AsyncIterable<T>): Promise<T[]> {
