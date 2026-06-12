@@ -1,6 +1,6 @@
 # statewalker-content
 
-Content pipeline: blocks, extractors, scanners, managers, plus the content-cli.
+Content extraction: turn PDF, DOCX, XLSX, Markdown, and HTML into markdown text.
 
 ## Packages
 
@@ -8,15 +8,13 @@ Content pipeline: blocks, extractors, scanners, managers, plus the content-cli.
 
 | Package | Description |
 | --- | --- |
-| [@statewalker/content-blocks](packages/content-blocks) | Block types shared across the content pipeline. |
-| [@statewalker/content-extractors](packages/content-extractors) | PDF/DOCX/XLSX/Markdown/HTML extractors. |
-| [@statewalker/content-pipeline](packages/content-pipeline) | Layered trackers that cascade file-system changes through extract, split, embed, and index stages. |
+| [@statewalker/content-extractors](packages/content-extractors) | PDF/DOCX/XLSX/Markdown/HTML extractors producing markdown text via a mime-aware registry. |
 
 ## Apps
 
 | App | Description |
 | --- | --- |
-| [content-cli](apps/content-cli) | CLI wrapping the content pipeline (scan / index / query). |
+| [indexer-tests](apps/indexer-tests) | Integration tests for the indexer stack. |
 
 ## Development
 

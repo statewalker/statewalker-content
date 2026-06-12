@@ -1,6 +1,4 @@
 export * from "./collect-bytes.js";
-export * from "./create-extractor.js";
-export * from "./extraction-pipeline.js";
 export * from "./extractor-registry.js";
 export * from "./extractors/index.js";
 export * from "./html-to-markdown.js";

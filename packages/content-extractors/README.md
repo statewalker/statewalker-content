@@ -1,6 +1,6 @@
 # @statewalker/content-extractors
 
-Content extractors: turn PDF, DOCX, XLSX, Markdown, and HTML into `@statewalker/content-blocks`.
+Content extractors: turn PDF, DOCX, XLSX, Markdown, and HTML into markdown **text** via a mime-aware registry.
 
 ## Installation
 
@@ -11,16 +11,16 @@ pnpm add @statewalker/content-extractors
 ## Usage
 
 ```ts
-import { extractFromPdf } from "@statewalker/content-extractors";
+import { createDefaultRegistry } from "@statewalker/content-extractors";
 
-const blocks = await extractFromPdf(pdfBytes);
+const registry = createDefaultRegistry();
+const extractor = registry.get("report.pdf");
+const markdown = await extractor?.(pdfBytes); // string
 ```
 
 ## API
 
-- `extractFromPdf`, `extractFromDocx`, `extractFromXlsx`, `extractFromMarkdown`, `extractFromHtml`.
-- `./extractors` — registry keyed by MIME type.
-
-## Related
-
-- `@statewalker/content-blocks` — output type.
+- `ContentExtractor` — the core contract: `bytes → Promise<string>`.
+- `ExtractorRegistry` / `createDefaultRegistry` — resolve an extractor by path or MIME type.
+- Format handlers under `./extractors` (PDF, DOCX, XLSX, Markdown, HTML).
+- `html-to-markdown`, `markdown-to-html`, `mime-utils`, `collect-bytes` helpers.

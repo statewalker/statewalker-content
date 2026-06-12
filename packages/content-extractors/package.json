@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": false,
   "type": "module",
-  "description": "Content extractors: turn PDF, DOCX, XLSX, Markdown, and HTML into @statewalker/content-blocks.",
+  "description": "Content extractors: turn PDF, DOCX, XLSX, Markdown, and HTML into markdown text.",
   "homepage": "https://github.com/statewalker/statewalker-content",
   "author": {
     "name": "Mikhail Kotelnikov",
@@ -34,8 +34,6 @@
     "format": "biome format --write ."
   },
   "dependencies": {
-    "@statewalker/content-blocks": "workspace:*",
-    "@statewalker/shared-ids": "catalog:",
     "exceljs": "catalog:",
     "mammoth": "catalog:",
     "markdown-it": "catalog:",
