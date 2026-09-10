@@ -17,9 +17,9 @@ catalog:
   "@statewalker/indexer-chunker": ^0.1.0
   "@statewalker/indexer-mem-flexsearch": ^0.1.0
   "@statewalker/shared-ids": ^0.1.0
-  "@statewalker/webrun-files": ^0.7.0
-  "@statewalker/webrun-files-mem": ^0.7.2
-  "@statewalker/webrun-files-node": ^0.7.2
+  "@statewalker/webrun-files": ^0.9.0
+  "@statewalker/webrun-files-mem": ^0.9.0
+  "@statewalker/webrun-files-node": ^0.9.0
   "@types/markdown-it": ^14.1.2
   "@types/node": ^25.6.0
   "@types/turndown": ^5.0.6
