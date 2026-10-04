@@ -1,3 +1,7 @@
+> **This repository is archived.** `@statewalker/content-extractors` now lives in
+> [statewalker/statewalker-search](https://github.com/statewalker/statewalker-search/tree/main/packages/content-extractors),
+> with this repository's history. Published versions 0.2.0 and later come from there.
+
 # statewalker-content
 
 Content extraction: turn PDF, DOCX, XLSX, Markdown, and HTML into markdown text.
